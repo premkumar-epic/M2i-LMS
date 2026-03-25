@@ -1,0 +1,559 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================================================
+// ENUMS
+// =========================================================
+
+enum Role {
+  STUDENT
+  MENTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum BatchStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+  COMPLETED
+}
+
+enum ContentType {
+  VIDEO
+  DOCUMENT
+  RESOURCE
+  LIVE_RECORDING
+}
+
+enum TranscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+  NOT_REQUIRED
+}
+
+enum QuizType {
+  QUICK_ASSESSMENT
+  RETENTION
+}
+
+enum CognitiveLevel {
+  RECALL
+  COMPREHENSION
+  APPLICATION
+  ANALYSIS
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum GenerationStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum RejectionReason {
+  FACTUALLY_INCORRECT
+  POORLY_WORDED
+  OFF_TOPIC
+  TOO_EASY
+  TOO_HARD
+  DUPLICATE
+  OTHER
+}
+
+enum SessionStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  MISSED
+}
+
+enum StreamingProvider {
+  MUX
+  AGORA
+}
+
+enum RecordingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+  NOT_AVAILABLE
+}
+
+enum AttendanceStatus {
+  ATTENDING
+  ATTENDED
+  ATTENDED_RECORDING
+  ABSENT
+}
+
+enum AlertType {
+  INACTIVE
+  SCORE_DROP
+  STRUGGLING
+  MISSED_SESSIONS
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum MetricsRunType {
+  NIGHTLY_BATCH
+  ON_DEMAND
+}
+
+// =========================================================
+// MODELS
+// =========================================================
+
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  fullName      String    @map("full_name") @db.VarChar(255)
+  role          Role?
+  avatarUrl     String?   @map("avatar_url") @db.Text
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+
+  refreshTokens          RefreshToken[]
+  loginAttempts          LoginAttempt[]
+  batchesCreated         Batch[]               @relation("BatchCreator")
+  enrollments            Enrollment[]          @relation("StudentEnrollments")
+  enrolledBy             Enrollment[]          @relation("EnrolledByUser")
+  withdrawnBy            Enrollment[]          @relation("WithdrawnByUser")
+  batchMentorAssignments BatchMentor[]         @relation("MentorBatches")
+  batchMentorAssignedBy  BatchMentor[]         @relation("AssignedByUser")
+  contentUploaded        Content[]             @relation("ContentUploader")
+  quizzesApproved        Quiz[]                @relation("QuizApprover")
+  quizResponses          QuizResponse[]
+  quizAttempts           QuizAttempt[]
+  sessionsHosted         LiveSession[]         @relation("SessionMentor")
+  sessionAttendance      SessionAttendance[]
+  contentAccessLogs      ContentAccessLog[]
+  studentProgress        StudentProgress[]
+  studentAlerts          StudentAlert[]        @relation("AlertedStudent")
+  alertsResolved         StudentAlert[]        @relation("AlertResolver")
+  notifications          Notification[]
+  metricsLogs            MetricsCalculationLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model LoginAttempt {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String   @db.VarChar(255)
+  ipAddress   String   @map("ip_address") @db.VarChar(45)
+  success     Boolean
+  attemptedAt DateTime @default(now()) @map("attempted_at") @db.Timestamptz
+
+  user User? @relation(fields: [email], references: [email])
+
+  @@map("login_attempts")
+}
+
+model Batch {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String      @unique @db.VarChar(255)
+  description String?     @db.Text
+  startDate   DateTime    @map("start_date") @db.Date
+  endDate     DateTime    @map("end_date") @db.Date
+  status      BatchStatus @default(DRAFT)
+  createdBy   String      @map("created_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  creator      User              @relation("BatchCreator", fields: [createdBy], references: [id])
+  enrollments  Enrollment[]
+  mentors      BatchMentor[]
+  content      Content[]
+  liveSessions LiveSession[]
+  progress     StudentProgress[]
+  alerts       StudentAlert[]
+
+  @@map("batches")
+}
+
+model Enrollment {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String           @map("student_id") @db.Uuid
+  batchId     String           @map("batch_id") @db.Uuid
+  status      EnrollmentStatus @default(ACTIVE)
+  enrolledAt  DateTime         @default(now()) @map("enrolled_at") @db.Timestamptz
+  enrolledBy  String           @map("enrolled_by") @db.Uuid
+  withdrawnAt DateTime?        @map("withdrawn_at") @db.Timestamptz
+  withdrawnBy String?          @map("withdrawn_by") @db.Uuid
+  completedAt DateTime?        @map("completed_at") @db.Timestamptz
+
+  student         User  @relation("StudentEnrollments", fields: [studentId], references: [id])
+  batch           Batch @relation(fields: [batchId], references: [id])
+  enrolledByUser  User  @relation("EnrolledByUser", fields: [enrolledBy], references: [id])
+  withdrawnByUser User? @relation("WithdrawnByUser", fields: [withdrawnBy], references: [id])
+
+  @@unique([studentId, batchId])
+  @@map("enrollments")
+}
+
+model BatchMentor {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId    String   @map("batch_id") @db.Uuid
+  mentorId   String   @map("mentor_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz
+  assignedBy String   @map("assigned_by") @db.Uuid
+
+  batch          Batch @relation(fields: [batchId], references: [id])
+  mentor         User  @relation("MentorBatches", fields: [mentorId], references: [id])
+  assignedByUser User  @relation("AssignedByUser", fields: [assignedBy], references: [id])
+
+  @@unique([batchId, mentorId])
+  @@map("batch_mentors")
+}
+
+model Content {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId             String              @map("batch_id") @db.Uuid
+  uploadedBy          String              @map("uploaded_by") @db.Uuid
+  title               String              @db.VarChar(255)
+  description         String?             @db.Text
+  contentType         ContentType         @map("content_type")
+  storageUrl          String              @map("storage_url") @db.Text
+  cdnUrl              String?             @map("cdn_url") @db.Text
+  durationSeconds     Int?                @map("duration_seconds")
+  fileSizeBytes       BigInt?             @map("file_size_bytes")
+  mimeType            String?             @map("mime_type") @db.VarChar(100)
+  topicTags           String[]            @default([]) @map("topic_tags")
+  learningObjectives  String?             @map("learning_objectives") @db.Text
+  transcript          String?             @db.Text
+  transcriptionStatus TranscriptionStatus @default(PENDING) @map("transcription_status")
+  transcriptionError  String?             @map("transcription_error") @db.Text
+  isPublished         Boolean             @default(false) @map("is_published")
+  sortOrder           Int                 @default(0) @map("sort_order")
+  liveSessionId       String?             @map("live_session_id") @db.Uuid
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz
+
+  batch              Batch                @relation(fields: [batchId], references: [id])
+  uploader           User                 @relation("ContentUploader", fields: [uploadedBy], references: [id])
+  accessLogs         ContentAccessLog[]
+  supplementaryFiles SupplementaryFile[]
+  quizzes            Quiz[]
+  quizAttempts       QuizAttempt[]
+  quizResponses      QuizResponse[]
+  sessionLinks       SessionContentLink[]
+  generationLogs     QuizGenerationLog[]
+  liveSession        LiveSession?         @relation("SessionRecordings", fields: [liveSessionId], references: [id])
+
+  @@map("content")
+}
+
+model ContentAccessLog {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId             String   @map("student_id") @db.Uuid
+  contentId             String   @map("content_id") @db.Uuid
+  batchId               String   @map("batch_id") @db.Uuid
+  firstAccessedAt       DateTime @default(now()) @map("first_accessed_at") @db.Timestamptz
+  lastAccessedAt        DateTime @default(now()) @map("last_accessed_at") @db.Timestamptz
+  totalWatchTimeSeconds Int      @default(0) @map("total_watch_time_seconds")
+  lastPositionSeconds   Int      @default(0) @map("last_position_seconds")
+  completionPercentage  Decimal  @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+  isCompleted           Boolean  @default(false) @map("is_completed")
+  accessCount           Int      @default(1) @map("access_count")
+  rewatchCount          Int      @default(0) @map("rewatch_count")
+
+  student User    @relation(fields: [studentId], references: [id])
+  content Content @relation(fields: [contentId], references: [id])
+
+  @@unique([studentId, contentId])
+  @@map("content_access_logs")
+}
+
+model SupplementaryFile {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentId     String   @map("content_id") @db.Uuid
+  filename      String   @db.VarChar(255)
+  storageUrl    String   @map("storage_url") @db.Text
+  cdnUrl        String?  @map("cdn_url") @db.Text
+  fileSizeBytes BigInt?  @map("file_size_bytes")
+  mimeType      String?  @map("mime_type") @db.VarChar(100)
+  uploadedAt    DateTime @default(now()) @map("uploaded_at") @db.Timestamptz
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("supplementary_files")
+}
+
+model Quiz {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentId            String           @map("content_id") @db.Uuid
+  batchId              String           @map("batch_id") @db.Uuid
+  quizType             QuizType         @map("quiz_type")
+  questionText         String           @map("question_text") @db.Text
+  options              Json
+  correctOptionIndex   Int              @map("correct_option_index")
+  explanation          String?          @db.Text
+  cognitiveLevel       CognitiveLevel   @map("cognitive_level")
+  difficulty           Difficulty       @default(MEDIUM)
+  isAiGenerated        Boolean          @default(true) @map("is_ai_generated")
+  generationStatus     GenerationStatus @default(PENDING_REVIEW) @map("generation_status")
+  approvedBy           String?          @map("approved_by") @db.Uuid
+  approvedAt           DateTime?        @map("approved_at") @db.Timestamptz
+  rejectionReason      RejectionReason? @map("rejection_reason")
+  originalQuestionText String?          @map("original_question_text") @db.Text
+  originalOptions      Json?            @map("original_options")
+  wasEdited            Boolean          @default(false) @map("was_edited")
+  availableFrom        DateTime?        @map("available_from") @db.Timestamptz
+  sourceConcept        String?          @map("source_concept") @db.Text
+  transcriptReference  String?          @map("transcript_reference") @db.Text
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  content   Content        @relation(fields: [contentId], references: [id])
+  approver  User?          @relation("QuizApprover", fields: [approvedBy], references: [id])
+  responses QuizResponse[]
+
+  @@map("quizzes")
+}
+
+model QuizResponse {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId           String   @map("student_id") @db.Uuid
+  quizId              String   @map("quiz_id") @db.Uuid
+  contentId           String   @map("content_id") @db.Uuid
+  batchId             String   @map("batch_id") @db.Uuid
+  attemptId           String   @map("attempt_id") @db.Uuid
+  selectedOptionIndex Int      @map("selected_option_index")
+  isCorrect           Boolean  @map("is_correct")
+  timeToAnswerSeconds Int?     @map("time_to_answer_seconds")
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz
+
+  student User    @relation(fields: [studentId], references: [id])
+  quiz    Quiz    @relation(fields: [quizId], references: [id])
+  content Content @relation(fields: [contentId], references: [id])
+
+  @@unique([studentId, quizId, attemptId])
+  @@map("quiz_responses")
+}
+
+model QuizAttempt {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attemptId        String   @unique @map("attempt_id") @db.Uuid
+  studentId        String   @map("student_id") @db.Uuid
+  contentId        String   @map("content_id") @db.Uuid
+  batchId          String   @map("batch_id") @db.Uuid
+  quizType         QuizType @map("quiz_type")
+  totalQuestions   Int      @map("total_questions")
+  correctAnswers   Int      @map("correct_answers")
+  scorePercentage  Decimal  @map("score_percentage") @db.Decimal(5, 2)
+  timeTakenSeconds Int?     @map("time_taken_seconds")
+  startedAt        DateTime? @map("started_at") @db.Timestamptz
+  completedAt      DateTime @default(now()) @map("completed_at") @db.Timestamptz
+
+  student User    @relation(fields: [studentId], references: [id])
+  content Content @relation(fields: [contentId], references: [id])
+
+  @@map("quiz_attempts")
+}
+
+model QuizGenerationLog {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentId          String   @map("content_id") @db.Uuid
+  generationRunId    String   @map("generation_run_id") @db.Uuid
+  stage              String   @db.VarChar(30)
+  modelUsed          String   @map("model_used") @db.VarChar(50)
+  promptTokens       Int?     @map("prompt_tokens")
+  completionTokens   Int?     @map("completion_tokens")
+  durationMs         Int?     @map("duration_ms")
+  success            Boolean
+  errorMessage       String?  @map("error_message") @db.Text
+  conceptsExtracted  Int?     @map("concepts_extracted")
+  questionsGenerated Int?     @map("questions_generated")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  content Content @relation(fields: [contentId], references: [id])
+
+  @@map("quiz_generation_logs")
+}
+
+model LiveSession {
+  id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId                  String            @map("batch_id") @db.Uuid
+  mentorId                 String            @map("mentor_id") @db.Uuid
+  title                    String            @db.VarChar(255)
+  description              String?           @db.Text
+  scheduledAt              DateTime          @map("scheduled_at") @db.Timestamptz
+  estimatedDurationMinutes Int?              @map("estimated_duration_minutes")
+  startedAt                DateTime?         @map("started_at") @db.Timestamptz
+  endedAt                  DateTime?         @map("ended_at") @db.Timestamptz
+  status                   SessionStatus     @default(SCHEDULED)
+  streamingProvider        StreamingProvider @default(MUX) @map("streaming_provider")
+  streamId                 String?           @map("stream_id") @db.Text
+  streamKey                String?           @map("stream_key") @db.Text
+  playbackUrl              String?           @map("playback_url") @db.Text
+  recordingUrl             String?           @map("recording_url") @db.Text
+  recordingStatus          RecordingStatus   @default(PENDING) @map("recording_status")
+  createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  batch        Batch                @relation(fields: [batchId], references: [id])
+  mentor       User                 @relation("SessionMentor", fields: [mentorId], references: [id])
+  attendance   SessionAttendance[]
+  contentLinks SessionContentLink[]
+  recordings   Content[]            @relation("SessionRecordings")
+
+  @@map("live_sessions")
+}
+
+model SessionAttendance {
+  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId                String           @map("session_id") @db.Uuid
+  studentId                String           @map("student_id") @db.Uuid
+  status                   AttendanceStatus @default(ATTENDING)
+  joinedAt                 DateTime?        @map("joined_at") @db.Timestamptz
+  leftAt                   DateTime?        @map("left_at") @db.Timestamptz
+  durationSeconds          Int              @default(0) @map("duration_seconds")
+  recordingWatchPercentage Decimal          @default(0) @map("recording_watch_percentage") @db.Decimal(5, 2)
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  session LiveSession @relation(fields: [sessionId], references: [id])
+  student User        @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@map("session_attendance")
+}
+
+model SessionContentLink {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String   @map("session_id") @db.Uuid
+  contentId String   @map("content_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content Content     @relation(fields: [contentId], references: [id])
+
+  @@unique([sessionId, contentId])
+  @@map("session_content_links")
+}
+
+model StudentProgress {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId              String   @map("student_id") @db.Uuid
+  batchId                String   @map("batch_id") @db.Uuid
+  weekNumber             Int      @map("week_number")
+  learningVelocityScore  Decimal  @default(0) @map("learning_velocity_score") @db.Decimal(5, 2)
+  contentEngagementScore Decimal  @default(0) @map("content_engagement_score") @db.Decimal(5, 2)
+  problemSolvingScore    Decimal  @default(0) @map("problem_solving_score") @db.Decimal(5, 2)
+  knowledgeRetentionScore Decimal @default(0) @map("knowledge_retention_score") @db.Decimal(5, 2)
+  consistencyScore       Decimal  @default(0) @map("consistency_score") @db.Decimal(5, 2)
+  curiosityScore         Decimal  @default(0) @map("curiosity_score") @db.Decimal(5, 2)
+  communicationScore     Decimal  @default(0) @map("communication_score") @db.Decimal(5, 2)
+  errorRecoveryScore     Decimal  @default(0) @map("error_recovery_score") @db.Decimal(5, 2)
+  conceptualDepthScore   Decimal  @default(0) @map("conceptual_depth_score") @db.Decimal(5, 2)
+  softSkillsScore        Decimal  @default(0) @map("soft_skills_score") @db.Decimal(5, 2)
+  overallScore           Decimal  @default(0) @map("overall_score") @db.Decimal(5, 2)
+  calculatedAt           DateTime @default(now()) @map("calculated_at") @db.Timestamptz
+
+  student User  @relation(fields: [studentId], references: [id])
+  batch   Batch @relation(fields: [batchId], references: [id])
+
+  @@unique([studentId, batchId, weekNumber])
+  @@map("student_progress")
+}
+
+model StudentAlert {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId  String        @map("student_id") @db.Uuid
+  batchId    String        @map("batch_id") @db.Uuid
+  alertType  AlertType     @map("alert_type")
+  severity   AlertSeverity @default(WARNING)
+  message    String        @db.Text
+  metadata   Json          @default("{}")
+  isResolved Boolean       @default(false) @map("is_resolved")
+  resolvedAt DateTime?     @map("resolved_at") @db.Timestamptz
+  resolvedBy String?       @map("resolved_by") @db.Uuid
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  student  User  @relation("AlertedStudent", fields: [studentId], references: [id])
+  batch    Batch @relation(fields: [batchId], references: [id])
+  resolver User? @relation("AlertResolver", fields: [resolvedBy], references: [id])
+
+  @@map("student_alerts")
+}
+
+model Notification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(255)
+  message   String    @db.Text
+  metadata  Json      @default("{}")
+  actionUrl String?   @map("action_url") @db.Text
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model MetricsCalculationLog {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId             String         @unique @map("run_id") @db.Uuid
+  runType           MetricsRunType @map("run_type")
+  triggeredBy       String?        @map("triggered_by") @db.VarChar(30)
+  studentId         String?        @map("student_id") @db.Uuid
+  batchId           String?        @map("batch_id") @db.Uuid
+  batchesProcessed  Int            @default(0) @map("batches_processed")
+  studentsProcessed Int            @default(0) @map("students_processed")
+  studentsFailed    Int            @default(0) @map("students_failed")
+  durationMs        Int?           @map("duration_ms")
+  startedAt         DateTime       @default(now()) @map("started_at") @db.Timestamptz
+  completedAt       DateTime?      @map("completed_at") @db.Timestamptz
+  errorMessage      String?        @map("error_message") @db.Text
+
+  student User? @relation(fields: [studentId], references: [id])
+
+  @@map("metrics_calculation_logs")
+}

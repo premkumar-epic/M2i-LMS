@@ -1,0 +1,55 @@
+// backend/src/routes/batch.routes.ts
+// All /api/batches and /api/my/batch routes.
+
+import { Router } from "express";
+import { authenticate } from "../middleware/authenticate";
+import { authorize } from "../middleware/authorize";
+import { validate } from "../middleware/validate";
+import {
+  createBatchSchema,
+  updateBatchSchema,
+  listBatchesQuerySchema,
+  archiveBatchSchema,
+  enrollStudentsSchema,
+  assignMentorsSchema,
+  listStudentsQuerySchema,
+} from "../validators/batch.validators";
+import {
+  createBatchController,
+  listBatchesController,
+  getBatchController,
+  updateBatchController,
+  archiveBatchController,
+  enrollStudentsController,
+  withdrawStudentController,
+  listBatchStudentsController,
+  assignMentorsController,
+  getMyBatchController,
+} from "../controllers/batch.controller";
+
+const router = Router();
+const adminOnly = [authenticate, authorize(["ADMIN", "SUPER_ADMIN"])];
+const adminOrMentor = [authenticate, authorize(["ADMIN", "SUPER_ADMIN", "MENTOR"])];
+const studentOnly = [authenticate, authorize(["STUDENT"])];
+
+// Admin CRUD
+router.post("/", ...adminOnly, validate(createBatchSchema), createBatchController);
+router.get("/", ...adminOnly, validate(listBatchesQuerySchema, "query"), listBatchesController);
+router.get("/:batchId", ...adminOrMentor, getBatchController);
+router.put("/:batchId", ...adminOnly, validate(updateBatchSchema), updateBatchController);
+router.post("/:batchId/archive", ...adminOnly, validate(archiveBatchSchema), archiveBatchController);
+
+// Enrollment management
+router.post("/:batchId/enroll", ...adminOnly, validate(enrollStudentsSchema), enrollStudentsController);
+router.delete("/:batchId/enroll/:studentId", ...adminOnly, withdrawStudentController);
+router.get("/:batchId/students", ...adminOrMentor, validate(listStudentsQuerySchema, "query"), listBatchStudentsController);
+
+// Mentor assignment
+router.post("/:batchId/mentors", ...adminOnly, validate(assignMentorsSchema), assignMentorsController);
+
+export default router;
+
+// ─── Student self-service (/api/my/batch) ───────────────────────────────────
+// Exported separately so routes/index.ts can mount it under /my
+export const myBatchRouter = Router();
+myBatchRouter.get("/batch", ...studentOnly, getMyBatchController);
