@@ -199,7 +199,10 @@ export const register = async (data: {
   full_name: string;
   ipAddress: string;
 }): Promise<SafeUser> => {
-  // Rate limit registration per IP to prevent bcrypt CPU exhaustion
+  // Rate limit registration per IP to prevent bcrypt CPU exhaustion.
+  // Log the attempt first so the counter accumulates across requests —
+  // without this write, checkIpRateLimit always sees 0 for fresh IPs.
+  await logAttempt(data.email, data.ipAddress, false);
   await checkIpRateLimit(data.ipAddress);
 
   const existing = await prisma.user.findUnique({

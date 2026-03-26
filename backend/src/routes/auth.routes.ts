@@ -27,8 +27,11 @@ router.post("/register", validate(registerSchema), registerController);
 router.post("/login", validate(loginSchema), loginController);
 router.post("/refresh-token", refreshTokenController);
 
-// Protected endpoints
-router.post("/logout", authenticate, logoutController);
+// Logout does not require a valid access token — the controller reads the
+// refresh_token cookie directly and revokes it. Requiring authenticate here
+// would block revocation when the access token has already expired.
+router.post("/logout", logoutController);
+
 router.get("/me", authenticate, getMeController);
 router.put("/me", authenticate, validate(updateProfileSchema), updateMeController);
 router.put(
