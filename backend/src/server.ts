@@ -54,11 +54,30 @@ httpServer.listen(PORT, () => {
 });
 
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 const shutdown = async (signal: string) => {
   logger.info(`[Server] ${signal} received — shutting down gracefully`);
+
+  // Force-exit after timeout so the process never hangs indefinitely
+  const forceExit = setTimeout(() => {
+    logger.error("[Server] Shutdown timed out — forcing exit");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref(); // Don't keep the event loop alive just for this timer
+
+  // 1. Close Socket.io — disconnects all WebSocket clients so
+  //    httpServer.close() does not hang waiting for open connections
+  await new Promise<void>((resolve) => io.close(() => resolve()));
+  logger.info("[Server] Socket.io closed");
+
+  // 2. Drain and close all Bull queues (Redis connections)
   await closeAllQueues();
+
+  // 3. Stop accepting new HTTP connections and wait for in-flight requests
   httpServer.close(() => {
-    logger.info("[Server] HTTP server closed");
+    logger.info("[Server] HTTP server closed — exiting");
+    clearTimeout(forceExit);
     process.exit(0);
   });
 };
