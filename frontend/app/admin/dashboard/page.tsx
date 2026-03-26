@@ -1,7 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+
+const NAV_ITEMS = [
+  { href: "/admin/batches", label: "Batches", description: "Manage cohorts, enrollment, and mentors", icon: "🎓" },
+];
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -13,21 +18,36 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 w-full max-w-md text-center">
-        <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl">🛠️</span>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
+            <p className="text-sm text-gray-500">{user?.full_name} · {user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+          >
+            Sign out
+          </button>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">Admin Dashboard</h1>
-        <p className="text-gray-500 text-sm mb-1">Signed in as <strong>{user?.full_name}</strong></p>
-        <p className="text-gray-400 text-xs mb-6">{user?.email} · {user?.role}</p>
-        <p className="text-gray-400 text-sm mb-6 italic">Coming soon — dashboard under construction.</p>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
-        >
-          Sign out
-        </button>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-gray-300 transition-all flex items-start gap-4"
+            >
+              <span className="text-2xl">{item.icon}</span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">{item.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

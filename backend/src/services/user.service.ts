@@ -34,11 +34,12 @@ type Pagination = {
 // HELPERS
 // =========================================================
 
-/** Generate a human-readable temporary password: Xxxx@9999 format */
+/** Generate a cryptographically secure temporary password: Xxxx@9999 format */
 const generateTempPassword = (): string => {
   const upper = crypto.randomBytes(1).toString("hex").toUpperCase()[0];
   const lower = crypto.randomBytes(4).toString("hex").slice(0, 4);
-  const digits = Math.floor(1000 + Math.random() * 9000).toString();
+  // Use crypto to generate 4 digits (0000–9999) instead of Math.random()
+  const digits = (crypto.randomInt(0, 10000)).toString().padStart(4, "0");
   return `${upper}${lower}@${digits}`;
 };
 

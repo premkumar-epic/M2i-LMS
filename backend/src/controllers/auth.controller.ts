@@ -26,10 +26,11 @@ const setAuthCookies = (
     maxAge: 60 * 60 * 1000, // 1 hour in ms
   });
 
-  // Refresh token — restricted to the refresh endpoint
+  // Refresh token — scoped to /api/auth so both the refresh and logout
+  // endpoints receive it, but it is never sent to other routes.
   res.cookie(authService.REFRESH_TOKEN_COOKIE, refreshToken, {
     ...COOKIE_BASE_OPTIONS,
-    path: "/api/auth/refresh-token",
+    path: "/api/auth",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
   });
 };
@@ -37,7 +38,7 @@ const setAuthCookies = (
 const clearAuthCookies = (res: Response): void => {
   res.clearCookie(authService.ACCESS_TOKEN_COOKIE, { path: "/" });
   res.clearCookie(authService.REFRESH_TOKEN_COOKIE, {
-    path: "/api/auth/refresh-token",
+    path: "/api/auth",
   });
 };
 

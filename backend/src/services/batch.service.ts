@@ -310,6 +310,9 @@ export const enrollStudents = async (
   const skipped: { student_id: string; reason: string }[] = [];
   const failed: { student_id: string; reason: string }[] = [];
 
+  const toReEnroll: string[] = [];
+  const toCreate: string[] = [];
+
   for (const studentId of studentIds) {
     if (!validStudentIds.has(studentId)) {
       failed.push({ student_id: studentId, reason: "User not found or not a student" });
@@ -321,21 +324,35 @@ export const enrollStudents = async (
       continue;
     }
     if (existingStatus === "WITHDRAWN") {
-      // Re-enroll: update existing record back to ACTIVE
-      const updated = await prisma.enrollment.update({
-        where: { studentId_batchId: { studentId, batchId } },
-        data: { status: "ACTIVE", withdrawnAt: null, withdrawnBy: null, enrolledAt: new Date(), enrolledBy: adminId },
-      });
-      const user = users.find((u) => u.id === studentId)!;
-      enrolled.push({ student_id: studentId, full_name: user.fullName, enrolled_at: updated.enrolledAt });
-      continue;
+      toReEnroll.push(studentId);
+    } else {
+      toCreate.push(studentId);
     }
-    // New enrollment
-    const record = await prisma.enrollment.create({
-      data: { studentId, batchId, enrolledBy: adminId },
+  }
+
+  const now = new Date();
+
+  // Bulk re-enroll withdrawn students in one query
+  if (toReEnroll.length > 0) {
+    await prisma.enrollment.updateMany({
+      where: { batchId, studentId: { in: toReEnroll } },
+      data: { status: "ACTIVE", withdrawnAt: null, withdrawnBy: null, enrolledAt: now, enrolledBy: adminId },
     });
-    const user = users.find((u) => u.id === studentId)!;
-    enrolled.push({ student_id: studentId, full_name: user.fullName, enrolled_at: record.enrolledAt });
+    for (const studentId of toReEnroll) {
+      const user = users.find((u) => u.id === studentId)!;
+      enrolled.push({ student_id: studentId, full_name: user.fullName, enrolled_at: now });
+    }
+  }
+
+  // Bulk create new enrollments in one query
+  if (toCreate.length > 0) {
+    await prisma.enrollment.createMany({
+      data: toCreate.map((studentId) => ({ studentId, batchId, enrolledBy: adminId })),
+    });
+    for (const studentId of toCreate) {
+      const user = users.find((u) => u.id === studentId)!;
+      enrolled.push({ student_id: studentId, full_name: user.fullName, enrolled_at: now });
+    }
   }
 
   return {
@@ -486,6 +503,7 @@ export const assignMentors = async (
 
   const assigned: { mentor_id: string; full_name: string; assigned_at: Date }[] = [];
   const skipped: { mentor_id: string; reason: string }[] = [];
+  const toAssign: string[] = [];
 
   for (const mentorId of mentorIds) {
     if (!validMentorIds.has(mentorId)) {
@@ -496,11 +514,18 @@ export const assignMentors = async (
       skipped.push({ mentor_id: mentorId, reason: "Already assigned to this batch" });
       continue;
     }
-    const record = await prisma.batchMentor.create({
-      data: { batchId, mentorId, assignedBy: adminId },
+    toAssign.push(mentorId);
+  }
+
+  if (toAssign.length > 0) {
+    const now = new Date();
+    await prisma.batchMentor.createMany({
+      data: toAssign.map((mentorId) => ({ batchId, mentorId, assignedBy: adminId })),
     });
-    const user = users.find((u) => u.id === mentorId)!;
-    assigned.push({ mentor_id: mentorId, full_name: user.fullName, assigned_at: record.assignedAt });
+    for (const mentorId of toAssign) {
+      const user = users.find((u) => u.id === mentorId)!;
+      assigned.push({ mentor_id: mentorId, full_name: user.fullName, assigned_at: now });
+    }
   }
 
   return { assigned, skipped };

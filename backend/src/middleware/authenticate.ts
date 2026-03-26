@@ -35,11 +35,18 @@ export const authenticate = (
     return;
   }
 
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    next({
+      code: "SERVER_MISCONFIGURATION",
+      message: "Server configuration error",
+      statusCode: 500,
+    });
+    return;
+  }
+
   try {
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as AuthUser;
+    const payload = jwt.verify(token, secret) as AuthUser;
     req.user = payload;
     next();
   } catch (err) {

@@ -24,6 +24,7 @@ const PUBLIC_ROUTES = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/refresh-token",
+  "/api/auth/check-session", // Must be public — middleware redirects here on expired token
   "/api/health",
 ];
 
@@ -178,17 +179,7 @@ export function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------
-  // STEP 8: Trying to access /login while logged in
-  // → redirect to role's default page
-  // -------------------------------------------------------
-  if (pathname === "/login" || pathname === "/register") {
-    const defaultRoute =
-      ROLE_DEFAULT_ROUTES[userRole] ?? "/login";
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
-  }
-
-  // -------------------------------------------------------
-  // STEP 9: Role-based route protection
+  // STEP 8: Role-based route protection
   // Check if the user's role is allowed to access the
   // current route prefix
   // -------------------------------------------------------
@@ -211,7 +202,7 @@ export function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------
-  // STEP 10: Route not in any protected prefix → allow through
+  // STEP 9: Route not in any protected prefix → allow through
   // (e.g., /notifications, /profile — accessible to all roles)
   // -------------------------------------------------------
   return NextResponse.next();

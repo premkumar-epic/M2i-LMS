@@ -32,8 +32,14 @@ function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect");
+  const rawRedirect = searchParams.get("redirect");
   const registered = searchParams.get("registered");
+
+  // Only allow same-origin paths — prevent open redirect after login
+  const redirectTo =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,7 +53,7 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace(redirectTo ?? "/");
+      router.replace(redirectTo);
     } catch (err) {
       const raw = getApiError(err);
       // Try to match a known error code embedded in the message
