@@ -26,16 +26,8 @@ const prodFormat = combine(
   json()
 );
 
-const redisPort = parseInt(process.env.REDIS_PORT ?? "6379", 10);
-
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL ?? "info",
   format: process.env.NODE_ENV === "production" ? prodFormat : devFormat,
   transports: [new winston.transports.Console()],
 });
-
-if (isNaN(redisPort)) {
-  logger.warn(
-    `[Config] REDIS_PORT env var "${process.env.REDIS_PORT}" is not a valid number — falling back to 6379`
-  );
-}

@@ -312,11 +312,12 @@ export default function UsersPage() {
       });
       setUsers(res.users);
       setTotal(res.pagination.total);
+      setLoading(false);
     } catch (err) {
-      // Ignore cancellations — a newer request is already in flight
+      // Ignore cancellations — a newer request is already in flight;
+      // do NOT clear loading so the spinner stays until the fresh result arrives.
       if (err instanceof Error && err.name === "CanceledError") return;
       setError(getApiError(err));
-    } finally {
       setLoading(false);
     }
   }, [search, roleFilter]);
@@ -408,7 +409,7 @@ export default function UsersPage() {
         <div className="text-center py-16">
           <p className="text-red-600 text-sm mb-3">{error}</p>
           <button
-            onClick={loadUsers}
+            onClick={() => loadUsers()}
             className="text-sm text-blue-600 underline"
           >
             Retry

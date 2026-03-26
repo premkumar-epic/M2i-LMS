@@ -6,11 +6,17 @@ import Bull from "bull";
 import { logger } from "../lib/logger";
 
 const rawPort = parseInt(process.env.REDIS_PORT ?? "6379", 10);
+const redisPort = isNaN(rawPort) ? 6379 : rawPort;
+
+if (isNaN(rawPort)) {
+  logger.warn(
+    `[Queues] REDIS_PORT "${process.env.REDIS_PORT}" is not a valid number — falling back to 6379`
+  );
+}
 
 const redisConfig = {
   host: process.env.REDIS_HOST ?? "localhost",
-  // Fall back to 6379 if REDIS_PORT is set but not a valid number
-  port: isNaN(rawPort) ? 6379 : rawPort,
+  port: redisPort,
   // Use || so an empty string env var is treated as "no password"
   password: process.env.REDIS_PASSWORD || undefined,
 };
