@@ -9,10 +9,12 @@ import { app } from "./app";
 import { setupNotificationSocket } from
   "./sockets/notificationSocket";
 import { startScheduler } from "./scheduler";
+import { logger } from "./lib/logger";
 
 // IMPORTANT: Import processors to register all Bull workers
 // This must happen before any jobs are added to the queues
 import "./queues/processors";
+import { closeAllQueues } from "./queues/queues";
 
 const PORT = process.env.PORT ?? 3001;
 
@@ -46,13 +48,22 @@ startScheduler();
 // START SERVER
 // =========================================================
 httpServer.listen(PORT, () => {
-  console.log(`[Server] M2i_LMS API running on port ${PORT}`);
-  console.log(
-    `[Server] Environment: ${process.env.NODE_ENV}`
-  );
-  console.log(
-    `[Server] CORS origin: ${process.env.CORS_ORIGIN}`
-  );
+  logger.info(`[Server] M2i_LMS API running on port ${PORT}`);
+  logger.info(`[Server] Environment: ${process.env.NODE_ENV}`);
+  logger.info(`[Server] CORS origin: ${process.env.CORS_ORIGIN}`);
 });
+
+// ─── Graceful shutdown ────────────────────────────────────────────────────────
+const shutdown = async (signal: string) => {
+  logger.info(`[Server] ${signal} received — shutting down gracefully`);
+  await closeAllQueues();
+  httpServer.close(() => {
+    logger.info("[Server] HTTP server closed");
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", () => { void shutdown("SIGTERM"); });
+process.on("SIGINT",  () => { void shutdown("SIGINT"); });
 
 export default httpServer;

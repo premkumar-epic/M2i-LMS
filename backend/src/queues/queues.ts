@@ -50,3 +50,14 @@ export const sessionQueue = createQueue("session");
 export const notificationQueue = createQueue("notification");
 
 logger.info("[Queues] Bull queues initialized: content, metrics, session, notification");
+
+// ─── Graceful shutdown ────────────────────────────────────────────────────────
+// Call this on SIGTERM/SIGINT to close all 12 Redis connections cleanly
+// before the process exits. Registered in server.ts.
+
+const allQueues = [contentQueue, metricsQueue, sessionQueue, notificationQueue];
+
+export const closeAllQueues = async (): Promise<void> => {
+  await Promise.all(allQueues.map((q) => q.close()));
+  logger.info("[Queues] All Bull queues closed");
+};
