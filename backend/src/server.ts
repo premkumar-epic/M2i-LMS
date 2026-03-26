@@ -55,8 +55,11 @@ httpServer.listen(PORT, () => {
 
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const SHUTDOWN_TIMEOUT_MS = 10_000;
+let isShuttingDown = false;
 
 const shutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   logger.info(`[Server] ${signal} received — shutting down gracefully`);
 
   // Force-exit after timeout so the process never hangs indefinitely

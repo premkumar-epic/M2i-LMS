@@ -62,7 +62,8 @@ export const closeAllQueues = async (): Promise<void> => {
   const results = await Promise.allSettled(allQueues.map((q) => q.close()));
   results.forEach((r, i) => {
     if (r.status === "rejected") {
-      logger.error(`[Queues] Failed to close queue "${allQueues[i].name}": ${(r.reason as Error).message}`);
+      const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+      logger.error(`[Queues] Failed to close queue "${allQueues[i].name}": ${msg}`);
     }
   });
   logger.info("[Queues] All Bull queues closed");
