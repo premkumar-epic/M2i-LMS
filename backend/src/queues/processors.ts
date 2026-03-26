@@ -1,6 +1,9 @@
 // backend/src/queues/processors.ts
 // Registers all Bull queue processors/workers.
 // Imported by server.ts on startup BEFORE any jobs are added.
+// Queues are initialized in queues.ts — import this file to ensure instances exist.
+
+import "./queues";
 
 // Content processing queue (AI pipeline — F03/F04)
 // import "./contentProcessingWorker";
