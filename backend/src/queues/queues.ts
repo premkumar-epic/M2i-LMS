@@ -58,6 +58,12 @@ logger.info("[Queues] Bull queues initialized: content, metrics, session, notifi
 const allQueues = [contentQueue, metricsQueue, sessionQueue, notificationQueue];
 
 export const closeAllQueues = async (): Promise<void> => {
-  await Promise.all(allQueues.map((q) => q.close()));
+  // allSettled so a single failed close doesn't leave other queues open
+  const results = await Promise.allSettled(allQueues.map((q) => q.close()));
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      logger.error(`[Queues] Failed to close queue "${allQueues[i].name}": ${(r.reason as Error).message}`);
+    }
+  });
   logger.info("[Queues] All Bull queues closed");
 };

@@ -66,15 +66,18 @@ const shutdown = async (signal: string) => {
   }, SHUTDOWN_TIMEOUT_MS);
   forceExit.unref(); // Don't keep the event loop alive just for this timer
 
-  // 1. Drain and close all Bull queues (Redis connections)
+  // 1. io.close() disconnects all WebSocket clients AND closes httpServer
+  //    internally — must happen first so in-flight request handlers can
+  //    still enqueue jobs before Redis connections are torn down.
+  //    Do NOT call httpServer.close() separately — io.close() already
+  //    does it and a second call would mean the callback never fires.
+  await new Promise<void>((resolve) => io.close(() => resolve()));
+  logger.info("[Server] Socket.io and HTTP server closed");
+
+  // 2. Drain and close all Bull queues (Redis connections)
   await closeAllQueues();
 
-  // 2. io.close() disconnects all WebSocket clients AND closes httpServer
-  //    internally — do NOT call httpServer.close() separately or the
-  //    callback would never fire (server already closed).
-  await new Promise<void>((resolve) => io.close(() => resolve()));
-
-  logger.info("[Server] HTTP server and Socket.io closed — exiting");
+  logger.info("[Server] Shutdown complete — exiting");
   clearTimeout(forceExit);
   process.exit(0);
 };
