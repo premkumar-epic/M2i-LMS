@@ -12,8 +12,14 @@ export default function NavHeader() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
+    try {
+      await logout();
+    } catch {
+      // logout failure (e.g. network error) should not block the redirect —
+      // the user is already effectively logged out on the client side.
+    } finally {
+      router.replace("/login");
+    }
   };
 
   return (

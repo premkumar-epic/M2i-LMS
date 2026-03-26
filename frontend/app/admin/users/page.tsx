@@ -331,11 +331,11 @@ export default function UsersPage() {
     void loadUsers();
   };
 
-  const handleUpdated = (updated: UserRow) => {
+  const handleUpdated = (_updated: UserRow) => {
     setEditUser(null);
-    setUsers((prev) =>
-      prev.map((u) => (u.user_id === updated.user_id ? updated : u))
-    );
+    // Reload from server so active search/role filters are re-applied —
+    // a role change would otherwise leave a stale row under the wrong filter.
+    void loadUsers();
   };
 
   // Step 1: user clicks "Reset PW" → show inline confirmation
