@@ -20,6 +20,7 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [partialResult, setPartialResult] = useState<{ skipped: number; failed: number } | null>(null);
 
   const fetchUsers = useCallback(async (q: string) => {
     setLoading(true);
@@ -50,11 +51,19 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
   const handleSubmit = async () => {
     if (selected.size === 0) return;
     setError(null);
+    setPartialResult(null);
     setSubmitting(true);
     try {
-      await enrollStudents(batchId, Array.from(selected));
+      const result = await enrollStudents(batchId, Array.from(selected));
       onSuccess();
-      onClose();
+      // If some students were skipped or failed, stay open to show the summary
+      const issues = result.skipped.length + result.failed.length;
+      if (issues > 0) {
+        setPartialResult({ skipped: result.skipped.length, failed: result.failed.length });
+        setSelected(new Set());
+      } else {
+        onClose();
+      }
     } catch (err) {
       setError(getApiError(err));
     } finally {
@@ -111,6 +120,12 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
             <p className="text-xs text-blue-600 font-medium">{selected.size} student(s) selected</p>
           )}
 
+          {partialResult && (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Done — {partialResult.skipped} skipped (already enrolled), {partialResult.failed} failed.
+            </p>
+          )}
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {error}
@@ -121,7 +136,8 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
         <div className="p-5 border-t border-gray-100 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+            disabled={submitting}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>

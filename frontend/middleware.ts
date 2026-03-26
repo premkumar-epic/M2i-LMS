@@ -192,7 +192,7 @@ export function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------
-  // STEP 8: Role-based route protection
+  // STEP 9: Role-based route protection
   // Check if the user's role is allowed to access the
   // current route prefix
   // -------------------------------------------------------
