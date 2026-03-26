@@ -4,6 +4,7 @@
 // Queues are initialized in queues.ts — import this file to ensure instances exist.
 
 import "./queues";
+import { logger } from "../lib/logger";
 
 // Content processing queue (AI pipeline — F03/F04)
 // import "./contentProcessingWorker";
@@ -17,4 +18,4 @@ import "./queues";
 // Notification queue (F10)
 // import "./notificationWorker";
 
-console.log("[Queues] Queue processors registered (workers pending implementation)");
+logger.info("[Queues] Queue processors registered (workers pending implementation)");

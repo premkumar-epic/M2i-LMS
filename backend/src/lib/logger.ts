@@ -3,21 +3,23 @@
 
 import winston from "winston";
 
+const { combine, timestamp, errors, colorize, printf, json } = winston.format;
+
+const devFormat = combine(
+  timestamp(),
+  errors({ stack: true }),
+  colorize({ all: true }),
+  printf(({ timestamp, level, message }) => `${timestamp} ${level}: ${message}`)
+);
+
+const prodFormat = combine(
+  timestamp(),
+  errors({ stack: true }),
+  json()
+);
+
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL ?? "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    process.env.NODE_ENV === "production"
-      ? winston.format.json()
-      : winston.format.colorize({ all: true }),
-    process.env.NODE_ENV === "production"
-      ? winston.format.printf(({ timestamp, level, message, ...meta }) =>
-          JSON.stringify({ timestamp, level, message, ...meta })
-        )
-      : winston.format.printf(
-          ({ timestamp, level, message }) => `${timestamp} ${level}: ${message}`
-        )
-  ),
+  format: process.env.NODE_ENV === "production" ? prodFormat : devFormat,
   transports: [new winston.transports.Console()],
 });
