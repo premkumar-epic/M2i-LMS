@@ -22,12 +22,15 @@ export default function BatchDetailPage() {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
 
+  const [batchError, setBatchError] = useState<string | null>(null);
+
   const fetchBatch = useCallback(async () => {
     try {
       const data = await getBatch(batchId);
       setBatch(data);
-    } catch {
-      // handle 404
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setBatchError(status === 404 ? "Batch not found." : "Failed to load batch. Please refresh.");
     }
   }, [batchId]);
 
@@ -71,7 +74,7 @@ export default function BatchDetailPage() {
   if (!batch) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Batch not found.</p>
+        <p className="text-gray-500">{batchError ?? "Batch not found."}</p>
       </div>
     );
   }

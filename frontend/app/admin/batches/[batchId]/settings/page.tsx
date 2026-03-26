@@ -18,6 +18,7 @@ export default function BatchSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -26,6 +27,10 @@ export default function BatchSettingsPage() {
       .then((data) => {
         setBatch(data);
         setForm({ name: data.name, description: data.description ?? "", end_date: data.end_date });
+      })
+      .catch((err: unknown) => {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        setLoadError(status === 404 ? "Batch not found." : "Failed to load batch. Please refresh.");
       })
       .finally(() => setLoading(false));
   }, [batchId]);
@@ -76,7 +81,7 @@ export default function BatchSettingsPage() {
   if (!batch) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Batch not found.</p>
+        <p className="text-gray-500">{loadError ?? "Batch not found."}</p>
       </div>
     );
   }

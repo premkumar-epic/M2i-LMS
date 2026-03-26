@@ -17,16 +17,18 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
   const [users, setUsers] = useState<{ id: string; full_name: string; email: string }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async (q: string) => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await listUsers({ role: "STUDENT", search: q || undefined, limit: 50 });
       setUsers(res.users);
     } catch {
-      // ignore
+      setFetchError("Failed to load students. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -80,6 +82,8 @@ export default function EnrollStudentsModal({ batchId, onSuccess, onClose }: Pro
           <div className="max-h-64 overflow-y-auto space-y-1 border border-gray-100 rounded-lg p-2">
             {loading ? (
               <p className="text-xs text-gray-400 text-center py-4">Loading...</p>
+            ) : fetchError ? (
+              <p className="text-xs text-red-500 text-center py-4">{fetchError}</p>
             ) : users.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">No students found.</p>
             ) : (

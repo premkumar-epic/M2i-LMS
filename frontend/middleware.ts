@@ -98,11 +98,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static files and Next.js internals through
+  // Allow Next.js internals through.
+  // NOTE: pathname.includes(".") is intentionally removed — the matcher config
+  // already excludes known static extensions, and a dot-check would bypass auth
+  // for any path containing a dot (e.g. /admin/export.csv).
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.includes(".") // Static files (images, etc.)
+    pathname.startsWith("/favicon")
   ) {
     return NextResponse.next();
   }
