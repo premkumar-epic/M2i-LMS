@@ -11,6 +11,9 @@ import "./queues";
 // Metrics calculation queue (F09)
 // import "./metricsWorker";
 
+// Live session queue (F06)
+// import "./sessionWorker";
+
 // Notification queue (F10)
 // import "./notificationWorker";
 

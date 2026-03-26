@@ -292,8 +292,12 @@ export default function UsersPage() {
     password: string;
   } | null>(null);
 
-  // Per-row reset loading
+  // Per-row reset state — null = idle, string = userId being reset
   const [resettingId, setResettingId] = useState<string | null>(null);
+  // Confirmation step before resetting: stores the user awaiting confirmation
+  const [confirmResetUser, setConfirmResetUser] = useState<UserRow | null>(null);
+  // Inline error for reset password failures (replaces alert())
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -322,8 +326,9 @@ export default function UsersPage() {
   const handleCreated = (result: CreateResult) => {
     setShowCreate(false);
     setTempPassword({ user: result, password: result.temporary_password });
-    setUsers((prev) => [result, ...prev]);
-    setTotal((t) => t + 1);
+    // Reload from server so the list respects active search/role filters
+    // and the total count is accurate rather than blindly incrementing.
+    void loadUsers();
   };
 
   const handleUpdated = (updated: UserRow) => {
@@ -333,13 +338,23 @@ export default function UsersPage() {
     );
   };
 
-  const handleResetPassword = async (user: UserRow) => {
-    setResettingId(user.user_id);
+  // Step 1: user clicks "Reset PW" → show inline confirmation
+  const handleResetPasswordClick = (user: UserRow) => {
+    setConfirmResetUser(user);
+    setResetError(null);
+  };
+
+  // Step 2: user confirms → execute the reset
+  const handleResetPasswordConfirm = async () => {
+    if (!confirmResetUser) return;
+    setResettingId(confirmResetUser.user_id);
+    setResetError(null);
     try {
-      const result = await resetUserPassword(user.user_id);
-      setTempPassword({ user, password: result.temporary_password });
+      const result = await resetUserPassword(confirmResetUser.user_id);
+      setConfirmResetUser(null);
+      setTempPassword({ user: confirmResetUser, password: result.temporary_password });
     } catch (err) {
-      alert(getApiError(err));
+      setResetError(getApiError(err));
     } finally {
       setResettingId(null);
     }
@@ -448,7 +463,7 @@ export default function UsersPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleResetPassword(user)}
+                        onClick={() => handleResetPasswordClick(user)}
                         disabled={resettingId === user.user_id}
                         className="px-3 py-1 text-xs font-medium text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50 transition-colors"
                       >
@@ -483,6 +498,43 @@ export default function UsersPage() {
           password={tempPassword.password}
           onClose={() => setTempPassword(null)}
         />
+      )}
+
+      {/* Reset password confirmation modal */}
+      {confirmResetUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-2">
+              Reset password?
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              This will immediately invalidate all sessions for{" "}
+              <strong>{confirmResetUser.full_name}</strong> and generate a new
+              temporary password. This cannot be undone.
+            </p>
+            {resetError && (
+              <p className="text-xs text-red-600 mb-3">{resetError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setConfirmResetUser(null); setResetError(null); }}
+                disabled={resettingId === confirmResetUser.user_id}
+                className="flex-1 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetPasswordConfirm}
+                disabled={resettingId === confirmResetUser.user_id}
+                className="flex-1 px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              >
+                {resettingId === confirmResetUser.user_id ? "Resetting…" : "Yes, reset"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
