@@ -36,10 +36,16 @@ type Pagination = {
 
 /** Generate a cryptographically secure temporary password: Xxxx@9999 format */
 const generateTempPassword = (): string => {
-  const upper = crypto.randomBytes(1).toString("hex").toUpperCase()[0];
-  const lower = crypto.randomBytes(4).toString("hex").slice(0, 4);
-  // Use crypto to generate 4 digits (0000–9999) instead of Math.random()
-  const digits = (crypto.randomInt(0, 10000)).toString().padStart(4, "0");
+  const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const lowerChars = "abcdefghijklmnopqrstuvwxyz";
+  const digitChars = "0123456789";
+
+  const getChar = (chars: string) => chars[crypto.randomInt(0, chars.length)];
+
+  const upper = getChar(upperChars);
+  const lower = Array.from({ length: 4 }, () => getChar(lowerChars)).join("");
+  const digits = Array.from({ length: 4 }, () => getChar(digitChars)).join("");
+
   return `${upper}${lower}@${digits}`;
 };
 

@@ -218,6 +218,14 @@ export const updateBatch = async (
     throw { code: "BATCH_NOT_FOUND", message: "Batch not found", statusCode: 404 };
   }
 
+  if (batch.status === "ARCHIVED") {
+    throw {
+      code: "BATCH_ARCHIVED",
+      message: "Cannot modify an archived batch",
+      statusCode: 400,
+    };
+  }
+
   // Check start_date change only relevant if input tries to set it (it's not in schema, but guard anyway)
   if (input.end_date) {
     const endDate = new Date(input.end_date);
@@ -263,6 +271,7 @@ export const archiveBatch = async (batchId: string) => {
   if (!batch) {
     throw { code: "BATCH_NOT_FOUND", message: "Batch not found", statusCode: 404 };
   }
+
   if (batch.status === "ARCHIVED") {
     throw {
       code: "BATCH_ALREADY_ARCHIVED",
@@ -291,6 +300,14 @@ export const enrollStudents = async (
   const batch = await prisma.batch.findUnique({ where: { id: batchId } });
   if (!batch) {
     throw { code: "BATCH_NOT_FOUND", message: "Batch not found", statusCode: 404 };
+  }
+
+  if (batch.status === "ARCHIVED") {
+    throw {
+      code: "BATCH_ARCHIVED",
+      message: "Cannot modify an archived batch",
+      statusCode: 400,
+    };
   }
 
   // Validate all IDs are real students
@@ -372,6 +389,19 @@ export const withdrawStudent = async (
   studentId: string,
   adminId: string
 ) => {
+  const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+  if (!batch) {
+    throw { code: "BATCH_NOT_FOUND", message: "Batch not found", statusCode: 404 };
+  }
+
+  if (batch.status === "ARCHIVED") {
+    throw {
+      code: "BATCH_ARCHIVED",
+      message: "Cannot modify an archived batch",
+      statusCode: 400,
+    };
+  }
+
   const enrollment = await prisma.enrollment.findUnique({
     where: { studentId_batchId: { studentId, batchId } },
   });
@@ -488,6 +518,14 @@ export const assignMentors = async (
   const batch = await prisma.batch.findUnique({ where: { id: batchId } });
   if (!batch) {
     throw { code: "BATCH_NOT_FOUND", message: "Batch not found", statusCode: 404 };
+  }
+
+  if (batch.status === "ARCHIVED") {
+    throw {
+      code: "BATCH_ARCHIVED",
+      message: "Cannot modify an archived batch",
+      statusCode: 400,
+    };
   }
 
   const users = await prisma.user.findMany({

@@ -79,15 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchMe().finally(() => setIsLoading(false));
   }, [fetchMe]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     const res = await api.post<{ success: boolean; data: AuthUser }>(
       "/auth/login",
       { email, password }
     );
     setUser(res.data.data);
-  };
+  }, []);
 
-  const register = async (
+  const register = useCallback(async (
     fullName: string,
     email: string,
     password: string,
@@ -100,15 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password_confirmation: passwordConfirmation,
     });
     // Registration does not log in — user must login separately
-  };
+  }, []);
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post("/auth/logout");
     } finally {
       setUser(null);
     }
-  };
+  }, []);
 
   const refreshUser = useCallback(fetchMe, [fetchMe]);
 

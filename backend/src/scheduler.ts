@@ -7,6 +7,12 @@ import cron from "node-cron";
 export const startScheduler = (): void => {
   console.log("[Scheduler] Starting cron scheduler...");
 
+  // Nightly cleanup of old login attempts — runs at 3:00 AM UTC
+  cron.schedule("0 3 * * *", async () => {
+    const { runLoginAttemptCleanup } = await import("./jobs/cleanup.job");
+    await runLoginAttemptCleanup();
+  });
+
   // Nightly metrics calculation — runs at 2:00 AM UTC
   // cron.schedule("0 2 * * *", async () => {
   //   const { runNightlyMetricsJob } = await import("./jobs/nightlyMetrics.job");
@@ -19,5 +25,5 @@ export const startScheduler = (): void => {
   //   await runAlertJob();
   // });
 
-  console.log("[Scheduler] Cron scheduler initialized (jobs pending implementation)");
+  console.log("[Scheduler] Cron scheduler initialized");
 };

@@ -23,6 +23,7 @@ export default function BatchDetailPage() {
   const [studentFilter, setStudentFilter] = useState("");
 
   const [batchError, setBatchError] = useState<string | null>(null);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
 
   const fetchBatch = useCallback(async () => {
     try {
@@ -35,6 +36,7 @@ export default function BatchDetailPage() {
   }, [batchId]);
 
   const fetchStudents = useCallback(async () => {
+    setStudentsError(null);
     try {
       const res = await listBatchStudents(batchId, {
         search: studentSearch || undefined,
@@ -44,7 +46,7 @@ export default function BatchDetailPage() {
       });
       setStudents(res.students);
     } catch {
-      // ignore
+      setStudentsError("Failed to load students. Please try again.");
     }
   }, [batchId, studentSearch, studentFilter]);
 
@@ -192,12 +194,14 @@ export default function BatchDetailPage() {
               placeholder="Search students..."
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={!!studentsError}
             />
             <select
               value={studentFilter}
               onChange={(e) => setStudentFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={!!studentsError}
             >
               <option value="">All</option>
               <option value="ACTIVE">Active</option>
@@ -205,11 +209,23 @@ export default function BatchDetailPage() {
             </select>
           </div>
 
-          <StudentTable
-            batchId={batchId}
-            students={students}
-            onUpdate={() => { fetchBatch(); fetchStudents(); }}
-          />
+          {studentsError ? (
+            <div className="p-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+              <p className="text-sm text-gray-500 mb-3">{studentsError}</p>
+              <button
+                onClick={() => fetchStudents()}
+                className="text-xs text-blue-600 font-medium hover:underline"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <StudentTable
+              batchId={batchId}
+              students={students}
+              onUpdate={() => { fetchBatch(); fetchStudents(); }}
+            />
+          )}
         </div>
       </div>
 

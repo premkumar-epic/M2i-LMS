@@ -99,7 +99,7 @@ const generateAndStoreRefreshToken = async (
 
   const expiresAt = new Date();
   // Parse Xd format explicitly — default to 7 if format is unexpected
-  const daysMatch = REFRESH_EXPIRY.match(/^(\d+)d$/);
+  const daysMatch = REFRESH_EXPIRY.match(/^(\d+)d$/i);
   const refreshDays = daysMatch ? parseInt(daysMatch[1], 10) : 7;
   expiresAt.setDate(expiresAt.getDate() + refreshDays);
 

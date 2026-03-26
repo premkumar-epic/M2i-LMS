@@ -57,7 +57,10 @@ api.interceptors.response.use(
         // Queue the request until refresh completes
         return new Promise((resolve, reject) => {
           pendingQueue.push({ resolve, reject });
-        }).then(() => api(originalRequest));
+        }).then(() => {
+          originalRequest._retry = true;
+          return api(originalRequest);
+        });
       }
 
       originalRequest._retry = true;
