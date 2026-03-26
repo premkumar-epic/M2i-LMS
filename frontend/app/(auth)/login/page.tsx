@@ -192,7 +192,9 @@ function LoginForm() {
 // Dev credentials panel — visible when NEXT_PUBLIC_APP_ENV=development
 function DevPanel() {
   const [open, setOpen] = useState(false);
-  if (process.env.NEXT_PUBLIC_APP_ENV !== "development") return null;
+  // Double-guard: also check NODE_ENV so a misconfigured production build
+  // (NEXT_PUBLIC_APP_ENV=development, NODE_ENV=production) never exposes credentials.
+  if (process.env.NEXT_PUBLIC_APP_ENV !== "development" || process.env.NODE_ENV === "production") return null;
 
   const accounts = [
     { label: "Super Admin", email: "superadmin@dev.com" },

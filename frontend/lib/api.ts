@@ -78,7 +78,8 @@ api.interceptors.response.use(
         drainQueue(refreshError);
         // Refresh failed — redirect to login
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          const redirect = encodeURIComponent(window.location.pathname);
+          window.location.href = `/login?redirect=${redirect}`;
         }
         return Promise.reject(refreshError);
       } finally {

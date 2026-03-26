@@ -172,7 +172,18 @@ export function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------
-  // STEP 7: Root path → redirect to role's default page
+  // STEP 7: Block role-assigned users from /pending-role
+  // /pending-role is only for users with no role. Without
+  // this guard it falls through to STEP 9 and renders for
+  // any authenticated user.
+  // -------------------------------------------------------
+  if (pathname === "/pending-role") {
+    const defaultRoute = ROLE_DEFAULT_ROUTES[userRole] ?? "/";
+    return NextResponse.redirect(new URL(defaultRoute, request.url));
+  }
+
+  // -------------------------------------------------------
+  // STEP 8: Root path → redirect to role's default page
   // -------------------------------------------------------
   if (pathname === "/") {
     const defaultRoute =

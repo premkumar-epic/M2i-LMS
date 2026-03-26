@@ -22,12 +22,13 @@ export async function GET(request: NextRequest) {
 
   try {
     // Forward cookies so the backend can read refresh_token
+    // credentials: "include" is a no-op in Node.js server-side fetch;
+    // cookies are forwarded explicitly via the cookie header above.
     const res = await fetch(`${BACKEND}/api/auth/refresh-token`, {
       method: "POST",
       headers: {
         cookie: request.headers.get("cookie") ?? "",
       },
-      credentials: "include",
     });
 
     if (!res.ok) {
