@@ -26,6 +26,7 @@ import {
   assignMentorsController,
   getMyBatchController,
 } from "../controllers/batch.controller";
+import { listBatchContent } from "../controllers/content.controller";
 
 const router = Router();
 const adminOnly = [authenticate, authorize(["ADMIN", "SUPER_ADMIN"])];
@@ -46,6 +47,11 @@ router.get("/:batchId/students", ...adminOrMentor, validate(listStudentsQuerySch
 
 // Mentor assignment
 router.post("/:batchId/mentors", ...adminOnly, validate(assignMentorsSchema), assignMentorsController);
+
+// Content listing for a batch — handled by content controller
+// GET /api/batches/:batchId/content — admin, mentor, student (student sees published only)
+const allRoles = [authenticate, authorize(["ADMIN", "SUPER_ADMIN", "MENTOR", "STUDENT"])];
+router.get("/:batchId/content", ...allRoles, listBatchContent);
 
 export default router;
 

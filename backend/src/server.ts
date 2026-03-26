@@ -10,6 +10,7 @@ import { setupNotificationSocket } from
   "./sockets/notificationSocket";
 import { startScheduler } from "./scheduler";
 import { logger } from "./lib/logger";
+import { initNotificationService } from "./services/notification.service";
 
 // IMPORTANT: Import processors to register all Bull workers
 // This must happen before any jobs are added to the queues
@@ -38,6 +39,7 @@ export const io = new SocketIOServer(httpServer, {
 });
 
 setupNotificationSocket(io);
+initNotificationService(io);
 
 // =========================================================
 // CRON SCHEDULER

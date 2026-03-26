@@ -4,6 +4,7 @@
 
 import { Server as SocketIOServer } from "socket.io";
 import jwt from "jsonwebtoken";
+import { logger } from "../lib/logger";
 
 type JWTPayload = { user_id: string; role: string | null };
 
@@ -34,12 +35,12 @@ export const setupNotificationSocket = (io: SocketIOServer): void => {
 
     const userId = payload.user_id;
     void socket.join(`user:${userId}`);
-    console.log(`[Socket] User ${userId} connected (socket ${socket.id})`);
+    logger.info(`[Socket] User ${userId} connected (socket ${socket.id})`);
 
     socket.on("disconnect", () => {
-      console.log(`[Socket] Socket ${socket.id} disconnected`);
+      logger.info(`[Socket] Socket ${socket.id} disconnected`);
     });
   });
 
-  console.log("[Socket] Notification socket initialized");
+  logger.info("[Socket] Notification socket initialized");
 };
