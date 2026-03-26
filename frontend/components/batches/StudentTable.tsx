@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { BatchStudent } from "@/lib/batch.api";
 import { withdrawStudent } from "@/lib/batch.api";
+import { getApiError } from "@/context/AuthContext";
 
 interface Props {
   batchId: string;
@@ -15,15 +16,19 @@ interface Props {
 export default function StudentTable({ batchId, students, onUpdate }: Props) {
   const [confirmWithdraw, setConfirmWithdraw] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const handleWithdraw = async (studentId: string) => {
     setWithdrawing(true);
+    setWithdrawError(null);
     try {
       await withdrawStudent(batchId, studentId);
       onUpdate();
+      setConfirmWithdraw(null);
+    } catch (err) {
+      setWithdrawError(getApiError(err));
     } finally {
       setWithdrawing(false);
-      setConfirmWithdraw(null);
     }
   };
 
@@ -92,12 +97,17 @@ export default function StudentTable({ batchId, students, onUpdate }: Props) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
             <p className="font-semibold text-gray-900 mb-2">Withdraw Student?</p>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 mb-4">
               The student will lose access to this batch immediately. Their progress data is preserved.
             </p>
+            {withdrawError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+                {withdrawError}
+              </p>
+            )}
             <div className="flex gap-3">
               <button
-                onClick={() => setConfirmWithdraw(null)}
+                onClick={() => { setConfirmWithdraw(null); setWithdrawError(null); }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
               >
                 Cancel

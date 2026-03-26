@@ -52,10 +52,13 @@ export const registerController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await authService.register(req.body as {
-      email: string;
-      password: string;
-      full_name: string;
+    const ipAddress =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ??
+      req.socket.remoteAddress ??
+      "unknown";
+    const user = await authService.register({
+      ...(req.body as { email: string; password: string; full_name: string }),
+      ipAddress,
     });
     res.status(201).json({ success: true, data: { user } });
   } catch (err) {

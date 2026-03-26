@@ -45,14 +45,17 @@ export default function BatchDetailPage() {
     }
   }, [batchId, studentSearch, studentFilter]);
 
+  // Initial load — fetch batch details once on mount
   useEffect(() => {
-    Promise.all([fetchBatch(), fetchStudents()]).finally(() => setLoading(false));
-  }, [fetchBatch, fetchStudents]);
+    fetchBatch().finally(() => setLoading(false));
+  }, [fetchBatch]);
 
+  // Debounced student list — runs on mount and whenever search/filter/batchId changes.
+  // Depends on primitive values, not the callback, so it fires exactly once per change.
   useEffect(() => {
-    const t = setTimeout(fetchStudents, 300);
+    const t = setTimeout(() => { void fetchStudents(); }, 300);
     return () => clearTimeout(t);
-  }, [fetchStudents]);
+  }, [batchId, studentSearch, studentFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (

@@ -98,7 +98,9 @@ const generateAndStoreRefreshToken = async (
     .digest("hex");
 
   const expiresAt = new Date();
-  const refreshDays = parseInt(REFRESH_EXPIRY.replace("d", ""), 10) || 7;
+  // Parse Xd format explicitly — default to 7 if format is unexpected
+  const daysMatch = REFRESH_EXPIRY.match(/^(\d+)d$/);
+  const refreshDays = daysMatch ? parseInt(daysMatch[1], 10) : 7;
   expiresAt.setDate(expiresAt.getDate() + refreshDays);
 
   await prisma.refreshToken.create({
@@ -195,7 +197,11 @@ export const register = async (data: {
   email: string;
   password: string;
   full_name: string;
+  ipAddress: string;
 }): Promise<SafeUser> => {
+  // Rate limit registration per IP to prevent bcrypt CPU exhaustion
+  await checkIpRateLimit(data.ipAddress);
+
   const existing = await prisma.user.findUnique({
     where: { email: data.email },
   });

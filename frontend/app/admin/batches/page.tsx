@@ -20,24 +20,28 @@ export default function BatchListPage() {
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
 
-  const fetch = useCallback(async () => {
+  const loadBatches = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await listBatches({ search: search || undefined, status: status || undefined, page: 1, limit: 20 });
       setBatches(res.batches);
       setTotal(res.pagination.total);
+    } catch {
+      setError("Failed to load batches. Please try again.");
     } finally {
       setLoading(false);
     }
   }, [search, status]);
 
   useEffect(() => {
-    const t = setTimeout(fetch, 300);
+    const t = setTimeout(loadBatches, 300);
     return () => clearTimeout(t);
-  }, [fetch]);
+  }, [loadBatches]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -81,6 +85,13 @@ export default function BatchListPage() {
             ))}
           </div>
         </div>
+
+        {/* Error */}
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+            {error}
+          </p>
+        )}
 
         {/* Grid */}
         {loading ? (

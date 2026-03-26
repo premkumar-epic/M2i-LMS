@@ -31,7 +31,7 @@ export const io = new SocketIOServer(httpServer, {
   pingInterval: 25000,
   connectionStateRecovery: {
     maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true,
+    skipMiddlewares: false, // Ensure io.use() auth middleware runs on reconnection too
   },
 });
 
