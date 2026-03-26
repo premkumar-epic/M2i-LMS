@@ -87,7 +87,7 @@ export const updateBatch = async (
 };
 
 export const archiveBatch = async (batchId: string) => {
-  const res = await api.post(`/batches/${batchId}/archive`);
+  const res = await api.post(`/batches/${batchId}/archive`, { confirmation: "ARCHIVE" });
   return res.data.data as { batch_id: string; status: string };
 };
 

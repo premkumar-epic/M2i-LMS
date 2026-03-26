@@ -190,6 +190,7 @@ export const getBatchById = async (batchId: string, requestingUserId: string, ro
     current_week: currentWeek(batch.status, batch.startDate),
     total_weeks: totalWeeks(batch.startDate, batch.endDate),
     enrolled_students_count: batch._count.enrollments,
+    assigned_mentors_count: batch.mentors.length,
     assigned_mentors: batch.mentors.map((m) => ({
       mentor_id: m.mentor.id,
       full_name: m.mentor.fullName,
