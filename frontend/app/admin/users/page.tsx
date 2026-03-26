@@ -299,7 +299,7 @@ export default function UsersPage() {
   // Inline error for reset password failures (replaces alert())
   const [resetError, setResetError] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
@@ -308,10 +308,13 @@ export default function UsersPage() {
         role: roleFilter || undefined,
         page: 1,
         limit: 50,
+        signal,
       });
       setUsers(res.users);
       setTotal(res.pagination.total);
     } catch (err) {
+      // Ignore cancellations — a newer request is already in flight
+      if (err instanceof Error && err.name === "CanceledError") return;
       setError(getApiError(err));
     } finally {
       setLoading(false);
@@ -319,8 +322,10 @@ export default function UsersPage() {
   }, [search, roleFilter]);
 
   useEffect(() => {
-    const t = setTimeout(loadUsers, 300);
-    return () => clearTimeout(t);
+    const controller = new AbortController();
+    const t = setTimeout(() => loadUsers(controller.signal), 300);
+    // Cancel both the timeout and any in-flight request when deps change
+    return () => { clearTimeout(t); controller.abort(); };
   }, [loadUsers]);
 
   const handleCreated = (result: CreateResult) => {

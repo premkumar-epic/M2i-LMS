@@ -27,16 +27,18 @@ type ListUsersParams = {
   role?: string;
   page?: number;
   limit?: number;
+  signal?: AbortSignal;
 };
 
 export const listUsers = async (
   params: ListUsersParams = {}
 ): Promise<{ users: UserRow[]; pagination: Pagination }> => {
+  const { signal, ...queryParams } = params;
   const res = await api.get<{
     success: boolean;
     users: UserRow[];
     pagination: Pagination;
-  }>("/users", { params: { page: 1, limit: 20, ...params } });
+  }>("/users", { params: { page: 1, limit: 50, ...queryParams }, signal });
   return { users: res.data.users, pagination: res.data.pagination };
 };
 
