@@ -571,6 +571,34 @@ export const assignMentors = async (
 };
 
 // =========================================================
+// MENTOR: GET MY BATCHES
+// =========================================================
+
+export const getMyBatches = async (mentorId: string) => {
+  const assignments = await prisma.batchMentor.findMany({
+    where: { mentorId },
+    include: {
+      batch: {
+        include: { _count: { select: { enrollments: true } } },
+      },
+    },
+    orderBy: { assignedAt: "desc" },
+  });
+
+  return assignments.map(({ batch }) => ({
+    batch_id: batch.id,
+    name: batch.name,
+    description: batch.description,
+    status: batch.status,
+    start_date: batch.startDate.toISOString().split("T")[0],
+    end_date: batch.endDate.toISOString().split("T")[0],
+    current_week: currentWeek(batch.status, batch.startDate),
+    total_weeks: totalWeeks(batch.startDate, batch.endDate),
+    enrolled_students_count: batch._count.enrollments,
+  }));
+};
+
+// =========================================================
 // STUDENT: GET MY BATCH
 // =========================================================
 

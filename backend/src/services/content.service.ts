@@ -38,6 +38,7 @@ const toContent = (c: {
   mimeType: string | null;
   topicTags: string[];
   learningObjectives: string | null;
+  transcript: string | null;
   transcriptionStatus: string;
   isPublished: boolean;
   sortOrder: number;
@@ -66,6 +67,7 @@ const toContent = (c: {
   mime_type: c.mimeType,
   topic_tags: c.topicTags,
   learning_objectives: c.learningObjectives,
+  transcript: c.transcript,
   transcription_status: c.transcriptionStatus,
   is_published: c.isPublished,
   sort_order: c.sortOrder,

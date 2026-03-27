@@ -9,6 +9,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 
+import path from "path";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import apiRoutes from "./routes/index";
@@ -72,6 +73,17 @@ app.use(
 // =========================================================
 
 app.use("/api", apiRoutes);
+
+// ─── Dev-only: local file upload + static serving ─────────────────────────────
+// In production, uploads go directly to S3 via pre-signed URLs.
+// Mount BEFORE the catch-all so /api/uploads/* is reachable.
+if (process.env.NODE_ENV !== "production") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const uploadRoutes = require("./routes/upload.routes").default as import("express").Router;
+  const UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR ?? "/tmp/m2i_uploads";
+  app.use("/api/uploads", uploadRoutes);
+  app.use("/api/uploads", express.static(path.resolve(UPLOAD_DIR)));
+}
 
 // Catch-all for unknown routes
 app.use((_req, _res, next) => {

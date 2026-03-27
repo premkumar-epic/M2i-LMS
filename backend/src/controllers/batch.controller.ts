@@ -158,6 +158,19 @@ export const assignMentorsController = async (
   }
 };
 
+export const getMyBatchesController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const batches = await batchService.getMyBatches(req.user!.user_id);
+    res.status(200).json({ success: true, data: batches });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMyBatchController = async (
   req: Request,
   res: Response,

@@ -24,6 +24,7 @@ import {
   withdrawStudentController,
   listBatchStudentsController,
   assignMentorsController,
+  getMyBatchesController,
   getMyBatchController,
 } from "../controllers/batch.controller";
 import { listBatchContent } from "../controllers/content.controller";
@@ -55,7 +56,9 @@ router.get("/:batchId/content", ...allRoles, listBatchContent);
 
 export default router;
 
-// ─── Student self-service (/api/my/batch) ───────────────────────────────────
+// ─── Self-service routes (/api/my/*) ─────────────────────────────────────────
 // Exported separately so routes/index.ts can mount it under /my
 export const myBatchRouter = Router();
+const mentorOnly = [authenticate, authorize(["MENTOR"])];
+myBatchRouter.get("/batches", ...mentorOnly, getMyBatchesController);
 myBatchRouter.get("/batch", ...studentOnly, getMyBatchController);
