@@ -118,6 +118,39 @@ export const listBatchStudents = async (
   };
 };
 
+// ── My batch(es) — self-service for mentor/student ───────────────────────────
+
+export interface MyBatchSummary {
+  batch_id: string;
+  name: string;
+  description: string | null;
+  status: BatchStatus;
+  start_date: string;
+  end_date: string;
+  current_week: number | null;
+  total_weeks: number;
+  enrolled_students_count: number;
+}
+
+export interface MyStudentBatch extends MyBatchSummary {
+  weeks_remaining: number | null;
+  assigned_mentors: { mentor_id: string; full_name: string; avatar_url: string | null }[];
+  enrollment_status: string;
+  enrolled_at: string;
+}
+
+/** Mentor: returns all batches the caller is assigned to */
+export const getMyBatches = async () => {
+  const res = await api.get("/my/batches");
+  return res.data.data as MyBatchSummary[];
+};
+
+/** Student: returns the student's single active enrolled batch */
+export const getMyBatch = async () => {
+  const res = await api.get("/my/batch");
+  return res.data.data as MyStudentBatch;
+};
+
 // ── Mentors ──────────────────────────────────────────────────────────────────
 
 export const assignMentors = async (batchId: string, mentorIds: string[]) => {
