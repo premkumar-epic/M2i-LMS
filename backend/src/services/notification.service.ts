@@ -84,9 +84,9 @@ export const sendToBatch = async (
 
   if (enrollments.length === 0) return 0;
 
-  // Create individually so each record's ID is available for the socket payload.
-  // createMany does not return created records in Prisma 5.
-  const created = await Promise.all(
+  // Use allSettled so a single failed DB write does not block socket emits for others.
+  // createMany is avoided because it does not return created records in Prisma 5.
+  const results = await Promise.allSettled(
     enrollments.map((e) =>
       prisma.notification.create({
         data: {
@@ -101,14 +101,21 @@ export const sendToBatch = async (
     )
   );
 
-  // Emit to each student's Socket.io room with the full payload including notification_id
-  for (const notification of created) {
-    const payload = toNotification(notification);
-    _io?.to(`user:${notification.userId}`).emit("notification:new", payload);
+  // Emit only for successful creates so socket payload always includes notification_id
+  let emitted = 0;
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      const payload = toNotification(result.value);
+      _io?.to(`user:${result.value.userId}`).emit("notification:new", payload);
+      emitted++;
+    } else {
+      const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      logger.error(`[Notification] Failed to create notification in sendToBatch: ${msg}`);
+    }
   }
 
-  logger.info(`[Notification] Sent "${type}" to ${enrollments.length} students in batch ${batchId}`);
-  return enrollments.length;
+  logger.info(`[Notification] Sent "${type}" to ${emitted}/${enrollments.length} students in batch ${batchId}`);
+  return emitted;
 };
 
 // ─── List ─────────────────────────────────────────────────────────────────────

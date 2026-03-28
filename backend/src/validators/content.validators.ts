@@ -31,6 +31,7 @@ export const generateUploadUrlSchema = Joi.object({
 });
 
 export const createContentSchema = Joi.object({
+  content_id: Joi.string().uuid().optional(), // S3 upload flow passes this to align DB record ID with S3 key path
   batch_id: Joi.string().uuid().required(),
   title: Joi.string().max(255).required(),
   description: Joi.string().max(2000).optional().allow(null, ""),
@@ -71,7 +72,7 @@ export const updateTranscriptSchema = Joi.object({
 });
 
 export const watchProgressSchema = Joi.object({
-  position_seconds: Joi.number().integer().min(0).required(),
+  position_seconds: Joi.number().integer().min(0).max(86400).required(), // cap at 24h
   watch_time_delta_seconds: Joi.number().integer().min(0).required(),
 });
 

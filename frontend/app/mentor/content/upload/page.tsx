@@ -67,6 +67,7 @@ export default function UploadContentPage() {
       let storageUrl: string;
       let cdnUrl: string | undefined;
       let fileSizeBytes: number | undefined = file.size;
+      let contentId: string | undefined;
 
       if (IS_DEV) {
         // Local upload to backend
@@ -75,11 +76,13 @@ export default function UploadContentPage() {
         cdnUrl = result.cdn_url;
         fileSizeBytes = result.file_size_bytes;
       } else {
-        // S3 pre-signed URL upload
+        // S3 pre-signed URL upload — pass content_id back to createContent so the
+        // DB record ID matches the UUID embedded in the S3 key path
         const uploadInfo = await contentApi.getUploadUrl(batchId, file.name, file.type);
         await contentApi.putToS3(uploadInfo.upload_url, file, setProgress);
         storageUrl = uploadInfo.s3_key;
         cdnUrl = uploadInfo.cdn_url;
+        contentId = uploadInfo.content_id;
       }
 
       setStatus("creating");
@@ -89,6 +92,7 @@ export default function UploadContentPage() {
       const contentType: contentApi.ContentType = isVideo ? "VIDEO" : "DOCUMENT";
 
       await contentApi.createContent({
+        content_id: contentId,
         batch_id: batchId,
         title: title.trim(),
         description: description.trim() || undefined,

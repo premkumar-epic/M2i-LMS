@@ -22,7 +22,7 @@ export default function StudentContentPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await contentApi.listBatchContent(batchId);
+      const data = await contentApi.listBatchContent(batchId, true);
       setItems(data);
     } catch {
       setError("Failed to load content.");

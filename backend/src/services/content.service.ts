@@ -145,6 +145,7 @@ export const createContent = async (
   requesterId: string,
   requesterRole: string,
   input: {
+    content_id?: string;   // When provided (S3 flow), the DB record is created with this ID so it matches the S3 key path
     batch_id: string;
     title: string;
     description?: string | null;
@@ -182,6 +183,7 @@ export const createContent = async (
 
   const content = await prisma.content.create({
     data: {
+      ...(input.content_id ? { id: input.content_id } : {}),
       batchId: input.batch_id,
       uploadedBy: requesterId,
       title: input.title,

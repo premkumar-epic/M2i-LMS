@@ -119,6 +119,7 @@ export const putToS3 = async (
 // ─── Content CRUD ─────────────────────────────────────────────────────────────
 
 export const createContent = async (data: {
+  content_id?: string; // Pass the ID from getUploadUrl (S3 flow) so DB record matches S3 key path
   batch_id: string;
   title: string;
   description?: string;
@@ -135,9 +136,13 @@ export const createContent = async (data: {
   return content;
 };
 
-export const listBatchContent = async (batchId: string): Promise<Content[]> => {
+export const listBatchContent = async (
+  batchId: string,
+  publishedOnly?: boolean
+): Promise<Content[]> => {
   const { data } = await api.get<{ content: Content[]; total: number }>(
-    `/batches/${batchId}/content`
+    `/batches/${batchId}/content`,
+    { params: publishedOnly ? { published_only: "true" } : undefined }
   );
   return data.content;
 };
