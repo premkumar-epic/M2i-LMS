@@ -3,7 +3,6 @@
 // components/notifications/NotificationDropdown.tsx
 // Dropdown panel showing recent notifications with mark-all-read and clear-all actions.
 
-import Link from "next/link";
 import { useNotifications } from "@/context/NotificationContext";
 import NotificationItem from "./NotificationItem";
 
@@ -61,16 +60,6 @@ export default function NotificationDropdown({ onClose }: Props) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-100 px-4 py-2.5">
-        <Link
-          href="/notifications"
-          onClick={onClose}
-          className="text-xs text-blue-600 hover:underline"
-        >
-          View all notifications →
-        </Link>
-      </div>
     </div>
   );
 }

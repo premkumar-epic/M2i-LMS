@@ -28,8 +28,10 @@ export default function StudentDashboard() {
     try {
       const data = await batchApi.getMyBatch();
       setBatch(data);
-    } catch {
-      setError("not-enrolled");
+    } catch (err) {
+      // Distinguish "not enrolled" (404) from unexpected errors
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(status === 404 ? "not-enrolled" : "error");
     } finally {
       setLoading(false);
     }
@@ -53,6 +55,13 @@ export default function StudentDashboard() {
           <p className="text-3xl mb-3">🎓</p>
           <p className="text-sm">You are not enrolled in any active batch yet.</p>
           <p className="text-xs mt-1">Contact your admin to get enrolled.</p>
+        </div>
+      )}
+
+      {!loading && error === "error" && (
+        <div className="text-center py-12">
+          <p className="text-sm text-red-600 mb-2">Failed to load your batch. Please try again.</p>
+          <button onClick={() => void load()} className="text-sm text-blue-600 hover:underline">Retry</button>
         </div>
       )}
 

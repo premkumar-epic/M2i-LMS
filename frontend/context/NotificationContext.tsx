@@ -90,10 +90,11 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       return;
     }
 
+    // Use slice to preserve base64 padding characters — split("=")[1] would truncate them.
     const accessToken = document.cookie
       .split("; ")
       .find((row) => row.startsWith("access_token="))
-      ?.split("=")[1];
+      ?.slice("access_token=".length);
 
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001", {
       auth: { token: accessToken },
@@ -141,6 +142,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     await notificationApi.clearAllNotifications();
     setNotifications([]);
     setUnreadCount(0);
+    setOffset(0);
+    setHasMore(false);
   }, []);
 
   return (

@@ -296,6 +296,16 @@ export const updateContent = async (
 
   await assertBatchAccess(content.batchId, requesterId, requesterRole);
 
+  // Mentors may only edit content they uploaded; admins may edit any content
+  const isAdmin = requesterRole === "ADMIN" || requesterRole === "SUPER_ADMIN";
+  if (!isAdmin && content.uploadedBy !== requesterId) {
+    throw {
+      code: "FORBIDDEN",
+      message: "You can only edit content you uploaded",
+      statusCode: 403,
+    };
+  }
+
   const updated = await prisma.content.update({
     where: { id: contentId },
     data: {
@@ -520,7 +530,9 @@ export const updateWatchProgress = async (
     where: { studentId_contentId: { studentId, contentId } },
   });
 
-  const rewatchIncrement = existing?.isCompleted && !isCompleted ? 1 : 0;
+  // Increment when student had NOT yet completed this video but just crossed the 90% threshold.
+  // Fires on initial completion and each subsequent re-completion (after scrubbing back below 90%).
+  const rewatchIncrement = existing && !existing.isCompleted && isCompleted ? 1 : 0;
 
   await prisma.contentAccessLog.upsert({
     where: { studentId_contentId: { studentId, contentId } },

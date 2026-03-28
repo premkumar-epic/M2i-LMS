@@ -38,10 +38,14 @@ contentQueue.process("EXTRACT_AUDIO", async (job) => {
   });
 
   if (!S3_ENABLED) {
-    // Dev mode — no real S3. Log and exit gracefully; transcription will stay PROCESSING.
+    // Dev mode — no real S3. Reset status to PENDING so the content does not appear stuck.
+    await prisma.content.update({
+      where: { id: contentId },
+      data: { transcriptionStatus: "PENDING" },
+    });
     logger.warn(
       `[EXTRACT_AUDIO] S3 credentials not configured — skipping audio extraction for content ${contentId}. ` +
-        "Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to enable the pipeline."
+        "Transcription status reset to PENDING. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to enable the pipeline."
     );
     return;
   }

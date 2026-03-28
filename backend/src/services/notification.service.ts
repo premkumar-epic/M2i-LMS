@@ -84,31 +84,27 @@ export const sendToBatch = async (
 
   if (enrollments.length === 0) return 0;
 
-  const now = new Date();
-  await prisma.notification.createMany({
-    data: enrollments.map((e) => ({
-      userId: e.studentId,
-      type,
-      title,
-      message,
-      metadata: metadata as object,
-      actionUrl,
-      isRead: false,
-      createdAt: now,
-    })),
-  });
+  // Create individually so each record's ID is available for the socket payload.
+  // createMany does not return created records in Prisma 5.
+  const created = await Promise.all(
+    enrollments.map((e) =>
+      prisma.notification.create({
+        data: {
+          userId: e.studentId,
+          type,
+          title,
+          message,
+          metadata: metadata as object,
+          actionUrl,
+        },
+      })
+    )
+  );
 
-  // Emit to each enrolled student's Socket.io room
-  for (const { studentId } of enrollments) {
-    _io?.to(`user:${studentId}`).emit("notification:new", {
-      type,
-      title,
-      message,
-      metadata,
-      action_url: actionUrl ?? null,
-      is_read: false,
-      created_at: now,
-    });
+  // Emit to each student's Socket.io room with the full payload including notification_id
+  for (const notification of created) {
+    const payload = toNotification(notification);
+    _io?.to(`user:${notification.userId}`).emit("notification:new", payload);
   }
 
   logger.info(`[Notification] Sent "${type}" to ${enrollments.length} students in batch ${batchId}`);

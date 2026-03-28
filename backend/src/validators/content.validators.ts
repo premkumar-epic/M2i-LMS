@@ -16,7 +16,6 @@ const ALLOWED_DOC_MIME = [
 ];
 const ALLOWED_SUPPLEMENTARY_MIME = [
   ...ALLOWED_DOC_MIME,
-  "application/pdf",
   "text/plain",
   "image/png",
   "image/jpeg",
