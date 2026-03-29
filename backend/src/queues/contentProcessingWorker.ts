@@ -4,6 +4,7 @@
 
 import path from "path";
 import fs from "fs";
+import { pipeline } from "stream/promises";
 import ffmpeg from "fluent-ffmpeg";
 import { contentQueue } from "./queues";
 import { prisma } from "../lib/prisma";
@@ -66,11 +67,8 @@ contentQueue.process("EXTRACT_AUDIO", async (job) => {
     const s3Key = urlObj.pathname.replace(/^\//, "");
 
     const s3Res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }));
-    const chunks: Buffer[] = [];
-    for await (const chunk of s3Res.Body as AsyncIterable<Buffer>) {
-      chunks.push(chunk);
-    }
-    fs.writeFileSync(inputPath, Buffer.concat(chunks));
+    const writeStream = fs.createWriteStream(inputPath);
+    await pipeline(s3Res.Body as NodeJS.ReadableStream, writeStream);
     logger.info(`[EXTRACT_AUDIO] Downloaded video for content ${contentId}`);
 
     // 2. Extract audio with FFmpeg

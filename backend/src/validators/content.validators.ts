@@ -73,7 +73,7 @@ export const updateTranscriptSchema = Joi.object({
 
 export const watchProgressSchema = Joi.object({
   position_seconds: Joi.number().integer().min(0).max(86400).required(), // cap at 24h
-  watch_time_delta_seconds: Joi.number().integer().min(0).required(),
+  watch_time_delta_seconds: Joi.number().integer().min(0).max(86400).required(),
 });
 
 export const generateFileUploadUrlSchema = Joi.object({

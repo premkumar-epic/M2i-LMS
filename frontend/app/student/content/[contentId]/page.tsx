@@ -36,8 +36,15 @@ export default function StudentContentDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await contentApi.getContent(contentId);
+      const [data, progress] = await Promise.all([
+        contentApi.getContent(contentId),
+        contentApi.getWatchProgress(contentId).catch(() => null),
+      ]);
       setContent(data);
+      if (progress) {
+        setCompletionPct(progress.completion_percentage);
+        lastPositionRef.current = progress.last_position_seconds;
+      }
     } catch {
       setError("Failed to load content.");
     } finally {

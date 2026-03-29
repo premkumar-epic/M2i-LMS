@@ -7,6 +7,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useCallback,
@@ -132,11 +133,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   }, []);
 
   const remove = useCallback(async (id: string) => {
-    const target = notifications.find((n) => n.notification_id === id);
     await notificationApi.deleteNotification(id);
-    setNotifications((prev) => prev.filter((n) => n.notification_id !== id));
-    if (target && !target.is_read) setUnreadCount((prev) => Math.max(0, prev - 1));
-  }, [notifications]);
+    setNotifications((prev) => {
+      const target = prev.find((n) => n.notification_id === id);
+      if (target && !target.is_read) setUnreadCount((u) => Math.max(0, u - 1));
+      return prev.filter((n) => n.notification_id !== id);
+    });
+  }, []);
 
   const clearAll = useCallback(async () => {
     await notificationApi.clearAllNotifications();
@@ -146,10 +149,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     setHasMore(false);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ notifications, unreadCount, isLoading, loadMore, hasMore, markRead, markAllRead, remove, clearAll }),
+    [notifications, unreadCount, isLoading, loadMore, hasMore, markRead, markAllRead, remove, clearAll]
+  );
+
   return (
-    <NotificationContext.Provider
-      value={{ notifications, unreadCount, isLoading, loadMore, hasMore, markRead, markAllRead, remove, clearAll }}
-    >
+    <NotificationContext.Provider value={contextValue}>
       {children}
     </NotificationContext.Provider>
   );

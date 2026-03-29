@@ -205,6 +205,15 @@ export const updateTranscript = async (
 
 // ─── Watch progress ───────────────────────────────────────────────────────────
 
+export interface WatchProgressDetail extends WatchProgress {
+  last_position_seconds: number;
+}
+
+export const getWatchProgress = async (contentId: string): Promise<WatchProgressDetail> => {
+  const { data } = await api.get<WatchProgressDetail>(`/content/${contentId}/progress`);
+  return data;
+};
+
 export const updateWatchProgress = async (
   contentId: string,
   positionSeconds: number,

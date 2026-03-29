@@ -8,6 +8,7 @@ import {
   toCdnUrl,
   contentKey,
   supplementaryKey,
+  deleteS3Object,
 } from "../lib/s3";
 import { contentQueue } from "../queues/queues";
 import { sendToBatch } from "./notification.service";
@@ -417,6 +418,11 @@ export const reorderContent = async (
 ) => {
   await assertBatchAccess(batchId, requesterId, requesterRole);
 
+  const sortOrders = items.map((i) => i.sort_order);
+  if (new Set(sortOrders).size !== sortOrders.length) {
+    throw { code: "VALIDATION_ERROR", message: "Duplicate sort_order values are not allowed", statusCode: 400 };
+  }
+
   const contentIds = items.map((i) => i.content_id);
 
   // Validate all items belong to this batch and are not soft-deleted
@@ -563,6 +569,19 @@ export const updateWatchProgress = async (
   return { content_id: contentId, completion_percentage: completionPercentage, is_completed: isCompleted };
 };
 
+export const getWatchProgress = async (contentId: string, studentId: string) => {
+  const log = await prisma.contentAccessLog.findUnique({
+    where: { studentId_contentId: { studentId, contentId } },
+    select: { completionPercentage: true, isCompleted: true, lastPositionSeconds: true },
+  });
+  return {
+    content_id: contentId,
+    completion_percentage: log?.completionPercentage ?? 0,
+    is_completed: log?.isCompleted ?? false,
+    last_position_seconds: log?.lastPositionSeconds ?? 0,
+  };
+};
+
 // ─── Supplementary files ──────────────────────────────────────────────────────
 
 export const generateFileUploadUrl = async (
@@ -657,4 +676,13 @@ export const deleteSupplementaryFile = async (
 
   await assertBatchAccess(file.content.batchId, requesterId, requesterRole);
   await prisma.supplementaryFile.delete({ where: { id: fileId } });
+
+  // Best-effort S3 cleanup — log on failure but don't fail the request
+  try {
+    const s3Key = new URL(file.storageUrl).pathname.replace(/^\//, "");
+    await deleteS3Object(s3Key);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(`[deleteSupplementaryFile] S3 cleanup failed for file ${fileId}: ${msg}`);
+  }
 };

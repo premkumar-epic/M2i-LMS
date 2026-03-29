@@ -55,7 +55,7 @@ export default function NotificationItem({ notification, onClose }: Props) {
       role="button"
       tabIndex={0}
       onClick={handleClick}
-      onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      onKeyDown={(e) => { if (e.key === "Enter") void handleClick(); }}
       className={`group flex gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${
         notification.is_read ? "opacity-60" : ""
       }`}

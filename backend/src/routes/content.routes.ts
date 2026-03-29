@@ -93,6 +93,14 @@ router.put(
 );
 
 // ─── Watch progress ────────────────────────────────────────────────────────────
+// GET /api/content/:contentId/progress
+router.get(
+  "/:contentId/progress",
+  authenticate,
+  authorize(["STUDENT"]),
+  contentController.getWatchProgress
+);
+
 // PATCH /api/content/:contentId/progress
 router.patch(
   "/:contentId/progress",

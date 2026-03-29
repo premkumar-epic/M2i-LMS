@@ -105,6 +105,14 @@ export const updateTranscript = async (req: Request, res: Response, next: NextFu
   } catch (err) { next(err); }
 };
 
+// GET /api/content/:contentId/progress
+export const getWatchProgress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await contentService.getWatchProgress(param(req, "contentId"), uid(req));
+    res.status(200).json(result);
+  } catch (err) { next(err); }
+};
+
 // PATCH /api/content/:contentId/progress
 export const updateWatchProgress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
