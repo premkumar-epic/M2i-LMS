@@ -104,8 +104,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     });
 
     socket.on("notification:new", (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+      setNotifications((prev) => {
+        // Guard against duplicates that can occur if the socket event arrives
+        // in the window between connection and loadInitial completing.
+        if (prev.some((n) => n.notification_id === notification.notification_id)) return prev;
+        setUnreadCount((u) => u + 1);
+        return [notification, ...prev];
+      });
     });
 
     socketRef.current = socket;

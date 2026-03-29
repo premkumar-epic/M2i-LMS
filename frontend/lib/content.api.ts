@@ -110,7 +110,7 @@ export const putToS3 = async (
         if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
       });
     }
-    xhr.onload = () => (xhr.status === 200 ? resolve() : reject(new Error(`S3 PUT failed: ${xhr.status}`)));
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 PUT failed: ${xhr.status}`)));
     xhr.onerror = () => reject(new Error("S3 PUT network error"));
     xhr.send(file);
   });

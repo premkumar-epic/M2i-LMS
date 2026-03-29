@@ -14,6 +14,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import apiRoutes from "./routes/index";
 import { errorHandler } from "./middleware/errorHandler";
+import { authenticate } from "./middleware/auth";
 
 export const app = express();
 
@@ -82,7 +83,7 @@ if (process.env.NODE_ENV !== "production") {
   const uploadRoutes = require("./routes/upload.routes").default as import("express").Router;
   const UPLOAD_DIR = process.env.LOCAL_UPLOAD_DIR ?? "/tmp/m2i_uploads";
   app.use("/api/uploads", uploadRoutes);
-  app.use("/api/uploads", express.static(path.resolve(UPLOAD_DIR)));
+  app.use("/api/uploads", authenticate, express.static(path.resolve(UPLOAD_DIR)));
 }
 
 // Catch-all for unknown routes
