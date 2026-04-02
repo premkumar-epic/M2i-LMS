@@ -97,10 +97,14 @@ export default function StudentContentDetailPage() {
     lastPositionRef.current = playedSeconds;
   };
 
-  // Resume from last watched position when player is ready
-  const handleReady = useCallback(() => {
+  // Resume from last watched position when player is ready.
+  // onReady passes the player instance as its first argument — capture it here
+  // instead of using ref, because Next.js dynamic() wraps components in
+  // LoadableComponent which does not forward refs.
+  const handleReady = useCallback((player: { seekTo: (amount: number, type: string) => void }) => {
+    playerRef.current = player;
     if (lastPositionRef.current > 0) {
-      playerRef.current?.seekTo(lastPositionRef.current, "seconds");
+      player.seekTo(lastPositionRef.current, "seconds");
     }
   }, []);
 
@@ -122,7 +126,6 @@ export default function StudentContentDetailPage() {
       {isVideo && (
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4">
           <ReactPlayer
-            ref={playerRef as React.Ref<unknown>}
             src={videoUrl}
             width="100%"
             height="100%"

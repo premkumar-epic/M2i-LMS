@@ -201,8 +201,7 @@ async function main() {
       contentType: "VIDEO",
       storageUrl: "video/dev/placeholder-nodejs-intro.mp4",
       cdnUrl:
-        "https://cdn-dev.m2ilms.com/video/dev/" +
-        "placeholder-nodejs-intro.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       durationSeconds: 2700,
       topicTags: ["nodejs", "javascript", "backend", "eventloop"],
       learningObjectives:
@@ -284,8 +283,7 @@ more like synchronous code while still being non-blocking.
       contentType: "VIDEO",
       storageUrl: "video/dev/placeholder-express-fundamentals.mp4",
       cdnUrl:
-        "https://cdn-dev.m2ilms.com/video/dev/" +
-        "placeholder-express-fundamentals.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
       durationSeconds: 3240,
       topicTags: ["express", "nodejs", "api", "middleware"],
       learningObjectives:
