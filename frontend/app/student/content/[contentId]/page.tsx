@@ -27,6 +27,7 @@ export default function StudentContentDetailPage() {
 
   // Player state
   const [playing, setPlaying] = useState(false);
+  const playerRef = useRef<{ seekTo: (amount: number, type: string) => void } | null>(null);
   const lastPositionRef = useRef(0);
   const watchTimeDeltaRef = useRef(0);
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -89,13 +90,19 @@ export default function StudentContentDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // onTimeUpdate fires ~4 times/sec; accumulate real watch time, skip seeks (delta > 5s)
-  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const currentTime = (e.target as HTMLVideoElement).currentTime;
-    const delta = currentTime - lastPositionRef.current;
+  // onProgress fires every second via react-player's documented API; accumulate real watch time, skip seeks (delta > 5s)
+  const handleProgress = ({ playedSeconds }: { playedSeconds: number }) => {
+    const delta = playedSeconds - lastPositionRef.current;
     if (delta > 0 && delta < 5) watchTimeDeltaRef.current += delta;
-    lastPositionRef.current = currentTime;
+    lastPositionRef.current = playedSeconds;
   };
+
+  // Resume from last watched position when player is ready
+  const handleReady = useCallback(() => {
+    if (lastPositionRef.current > 0) {
+      playerRef.current?.seekTo(lastPositionRef.current, "seconds");
+    }
+  }, []);
 
   if (loading) return <div className="max-w-3xl mx-auto px-4 py-8 animate-pulse"><div className="aspect-video bg-gray-100 rounded-xl mb-4" /></div>;
   if (error) return <div className="max-w-3xl mx-auto px-4 py-8"><p className="text-sm text-red-600">{error}</p></div>;
@@ -115,15 +122,17 @@ export default function StudentContentDetailPage() {
       {isVideo && (
         <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4">
           <ReactPlayer
+            ref={playerRef as React.Ref<unknown>}
             src={videoUrl}
             width="100%"
             height="100%"
             controls
             playing={playing}
+            onReady={handleReady}
             onPlay={() => setPlaying(true)}
             onPause={() => { setPlaying(false); void sendProgress(); }}
             onEnded={() => { setPlaying(false); void sendProgress(); }}
-            onTimeUpdate={handleTimeUpdate}
+            onProgress={handleProgress}
           />
         </div>
       )}

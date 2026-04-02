@@ -85,12 +85,12 @@ contentQueue.process("EXTRACT_AUDIO", async (job) => {
 
     // 3. Upload audio MP3 to S3
     const audioS3Key = audioKey(contentId);
-    const audioBuffer = fs.readFileSync(outputPath);
+    const audioStream = fs.createReadStream(outputPath);
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: audioS3Key,
-        Body: audioBuffer,
+        Body: audioStream,
         ContentType: "audio/mpeg",
       })
     );

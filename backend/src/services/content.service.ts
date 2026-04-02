@@ -458,13 +458,17 @@ export const getTranscript = async (
 ) => {
   const content = await prisma.content.findFirst({
     where: { id: contentId, deletedAt: null },
-    select: { id: true, batchId: true, transcript: true, transcriptionStatus: true },
+    select: { id: true, batchId: true, transcript: true, transcriptionStatus: true, isPublished: true },
   });
   if (!content) {
     throw { code: "NOT_FOUND", message: "Content not found", statusCode: 404 };
   }
 
   await assertBatchAccess(content.batchId, requesterId, requesterRole);
+
+  if (requesterRole === "STUDENT" && !content.isPublished) {
+    throw { code: "NOT_FOUND", message: "Content not found", statusCode: 404 };
+  }
 
   return {
     content_id: content.id,
