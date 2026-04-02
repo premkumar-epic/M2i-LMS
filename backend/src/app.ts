@@ -14,7 +14,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import apiRoutes from "./routes/index";
 import { errorHandler } from "./middleware/errorHandler";
-import { authenticate } from "./middleware/auth";
+import { authenticate } from "./middleware/authenticate";
 
 export const app = express();
 
